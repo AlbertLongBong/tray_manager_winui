@@ -73,7 +73,7 @@ dependencies:
 ```yaml
 tray_manager_winui:
   git:
-    url: https://github.com/ItzNotMe/tray_manager_winui.git
+    url: https://github.com/AlbertLongBong/tray_manager_winui.git
 ```
 
 `menu_base` wird von tray_manager re-exportiert; bei path-Dependencies (lokale Entwicklung) ggf. explizit angeben.

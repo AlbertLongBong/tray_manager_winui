@@ -1,8 +1,8 @@
 name: tray_manager_winui
 description: WinUI 3 context menu for tray_manager - modern Fluent Design context menu on Windows.
 version: 0.1.0
-homepage: https://github.com/ItzNotMe/tray_manager_winui
-repository: https://github.com/ItzNotMe/tray_manager_winui
+homepage: https://github.com/AlbertLongBong/tray_manager_winui
+repository: https://github.com/AlbertLongBong/tray_manager_winui
 
 platforms:
   windows:
