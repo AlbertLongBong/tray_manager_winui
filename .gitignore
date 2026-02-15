@@ -1,0 +1,70 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+Thumbs.db
+*.tmp
+*.temp
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (optional – auskommentieren um Launch-Konfiguration zu committen)
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/pubspec.lock
+build/
+coverage/
+.metadata
+
+# Symbolication / Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Plugin build outputs
+windows/**/winui_packages/
+
+# Windows / Visual Studio
+**/windows/flutter/ephemeral/
+**/.plugin_symlinks/
+**/windows/x64/
+**/windows/x86/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.[Cc]ache
+
+# Android (falls später hinzugefügt)
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/**/GeneratedPluginRegistrant.*
+
+# iOS (falls später hinzugefügt)
+**/ios/Flutter/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/ServiceDefinitions.json

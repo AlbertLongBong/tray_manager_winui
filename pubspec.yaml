@@ -1,0 +1,35 @@
+name: tray_manager_winui
+description: WinUI 3 context menu for tray_manager - modern Fluent Design context menu on Windows.
+version: 0.1.0
+homepage: https://github.com/ItzNotMe/tray_manager_winui
+repository: https://github.com/ItzNotMe/tray_manager_winui
+
+platforms:
+  windows:
+
+topics:
+  - tray
+  - system-tray
+  - winui
+  - context-menu
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  tray_manager: ^0.5.2
+  menu_base: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  plugin:
+    platforms:
+      windows:
+        pluginClass: TrayManagerWinuiPlugin

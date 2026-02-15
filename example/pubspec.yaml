@@ -1,0 +1,24 @@
+name: tray_manager_winui_example
+description: Demonstrates tray_manager with WinUI 3 context menu.
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  bot_toast: ^4.0.1
+  flutter:
+    sdk: flutter
+  tray_manager: ^0.5.2
+  tray_manager_winui:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - images/
