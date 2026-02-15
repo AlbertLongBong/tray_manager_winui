@@ -87,9 +87,9 @@ class TrayManagerWinUI {
     final bool shown = result == true;
     if (kDebugMode && !shown) {
       debugPrint(
-        'tray_manager_winui: WinUI context menu nicht angezeigt. '
-        'Prüfe: NuGet im PATH? Windows App SDK installiert? '
-        'Siehe README (MddBootstrap, winget install Microsoft.WindowsAppRuntime.1.5)',
+        'tray_manager_winui: WinUI context menu not displayed. '
+        'Check: NuGet in PATH? Windows App SDK installed? '
+        'See README (MddBootstrap, winget install Microsoft.WindowsAppRuntime.1.5)',
       );
     }
     return shown;

@@ -1,56 +1,56 @@
-# tray_manager_winui – Ideen für zukünftige Optionen
+# tray_manager_winui – Ideas for Future Options
 
-Übersicht möglicher Erweiterungen für das Plugin. Keine Prioritäten – nur eine Sammlung implementierbarer Optionen.
+Overview of possible extensions for the plugin. No priorities – just a collection of implementable options.
 
 ---
 
 ## Styling (WinUIContextMenuStyle)
 
-| Option | Beschreibung | Aufwand |
-|--------|--------------|---------|
-| ~~`borderColor` / `borderThickness`~~ | ~~Rahmen um das Menü~~ | ✅ Implementiert |
-| ~~`shadowElevation`~~ | ~~Schatten-Effekt~~ | ✅ Implementiert |
-| ~~`itemHeight` / `minItemHeight`~~ | ~~Mindesthöhe pro Menüeintrag~~ | ✅ Implementiert |
-| `checkedForegroundColor` / `checkedBackgroundColor` | Styling für Checkbox im gecheckten Zustand | Mittel – ToggleMenuFlyoutItem Resource-Keys |
-| `iconColor` | Farbe für Icons (vorbereitend für Phase 2) | Gering |
-| ~~`fontStyle`~~ | ~~Kursiv/Normal~~ | ✅ Implementiert |
-| `keyboardAcceleratorColor` | Farbe für Tastenkürzel (z.B. „Ctrl+C“) | Mittel – Resource-Keys in WinUI |
+| Option | Description | Effort |
+|--------|-------------|--------|
+| ~~`borderColor` / `borderThickness`~~ | ~~Border around menu~~ | Done |
+| ~~`shadowElevation`~~ | ~~Shadow effect~~ | Done |
+| ~~`itemHeight` / `minItemHeight`~~ | ~~Minimum height per menu item~~ | Done |
+| `checkedForegroundColor` / `checkedBackgroundColor` | Styling for checkbox in checked state | Medium – ToggleMenuFlyoutItem resource keys |
+| `iconColor` | Color for icons (preparatory for Phase 2) | Low |
+| ~~`fontStyle`~~ | ~~Italic/Normal~~ | Done |
+| `keyboardAcceleratorColor` | Color for keyboard shortcuts (e.g. "Ctrl+C") | Medium – resource keys in WinUI |
 
 ---
 
-## Menü-Items (MenuItem-API)
+## Menu Items (MenuItem API)
 
-| Option | Beschreibung | Abhängigkeit |
-|--------|--------------|--------------|
-| **Icons** | `MenuItem(icon: 'path/to/icon.ico')` – WinUI MenuFlyoutItem.Icon | Phase 2, ggf. menu_base erweitern |
-| **accelerator** | `MenuItem(accelerator: 'Ctrl+C')` – Text rechts neben dem Label | menu_base erweitern, WinUI KeyboardAcceleratorTextOverride |
-| **tooltip** | `MenuItem(tooltip: 'Längere Beschreibung')` | menu_base + WinUI ToolTipService.SetToolTip |
-
----
-
-## Menü-Verhalten (API-Erweiterungen)
-
-| Option | Beschreibung | Aufwand |
-|--------|--------------|---------|
-| ~~`showContextMenuAt(x, y)`~~ | ~~Menü an expliziter Position statt Cursor~~ | ✅ Implementiert (x, y als optionale Parameter von showContextMenu) |
-| ~~`placement`~~ | ~~Wo das Menü relativ zum Anker erscheint (Top/Bottom/Left/Right)~~ | ✅ Implementiert (Parameter von showContextMenu, WinUIFlyoutPlacement) |
-| `inputDevicePrefersRightSide` | Menü rechts vom Cursor für Linkshänder | Nicht verfügbar – API existiert in WinUI 3 nicht (nur InputDevicePrefersPrimaryCommands, read-only) |
+| Option | Description | Dependency |
+|--------|-------------|------------|
+| **Icons** | `MenuItem(icon: 'path/to/icon.ico')` – WinUI MenuFlyoutItem.Icon | Phase 2, may need menu_base extension |
+| **accelerator** | `MenuItem(accelerator: 'Ctrl+C')` – Text to the right of label | menu_base extension, WinUI KeyboardAcceleratorTextOverride |
+| **tooltip** | `MenuItem(tooltip: 'Longer description')` | menu_base + WinUI ToolTipService.SetToolTip |
 
 ---
 
-## Weitere native WinUI-Optionen
+## Menu Behavior (API Extensions)
 
-| Option | Beschreibung |
-|--------|--------------|
-| `maxHeight` | Maximale Menühöhe mit Scrollbar |
-| `exclusionRect` | Bereiche, die das Menü vermeiden soll (z.B. Taskleiste) |
+| Option | Description | Effort |
+|--------|-------------|--------|
+| ~~`showContextMenuAt(x, y)`~~ | ~~Menu at explicit position instead of cursor~~ | Done (x, y as optional parameters of showContextMenu) |
+| ~~`placement`~~ | ~~Where menu appears relative to anchor (Top/Bottom/Left/Right)~~ | Done (parameter of showContextMenu, WinUIFlyoutPlacement) |
+| `inputDevicePrefersRightSide` | Menu to the right of cursor for left-handed users | Not available – API does not exist in WinUI 3 (only InputDevicePrefersPrimaryCommands, read-only) |
 
 ---
 
-## Priorisierung (optional)
+## Other Native WinUI Options
 
-**Schnell umsetzbar:** ~~borderColor/borderThickness~~, ~~fontStyle~~, ~~showContextMenuAt(x,y)~~, ~~itemHeight~~ (implementiert). inputDevicePrefersRightSide: nicht in WinUI 3 API.  
+| Option | Description |
+|--------|-------------|
+| `maxHeight` | Maximum menu height with scrollbar |
+| `exclusionRect` | Areas the menu should avoid (e.g. taskbar) |
 
-**Hoher Nutzen:** Icons (Phase 2), accelerator (Tastenkürzel), ~~placement~~ (implementiert)  
+---
 
-**Nice-to-have:** ~~Schatten~~ (implementiert), Checkbox-Styling, Tooltip
+## Prioritization (optional)
+
+**Quick to implement:** ~~borderColor/borderThickness~~, ~~fontStyle~~, ~~showContextMenuAt(x,y)~~, ~~itemHeight~~ (done). inputDevicePrefersRightSide: not in WinUI 3 API.
+
+**High value:** Icons (Phase 2), accelerator (keyboard shortcuts), ~~placement~~ (done)
+
+**Nice-to-have:** ~~Shadow~~ (done), checkbox styling, tooltip

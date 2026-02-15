@@ -54,11 +54,11 @@ class _MainTabPageState extends State<MainTabPage> with TrayListener {
           },
         ),
         MenuItem.submenu(
-          label: 'Mehr',
+          label: 'More',
           submenu: Menu(
             items: [
-              MenuItem(label: 'Unterpunkt 1'),
-              MenuItem(label: 'Unterpunkt 2', disabled: true),
+              MenuItem(label: 'Submenu 1'),
+              MenuItem(label: 'Submenu 2', disabled: true),
             ],
           ),
         ),

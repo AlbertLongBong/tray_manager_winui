@@ -21,7 +21,7 @@ Thumbs.db
 *.iws
 .idea/
 
-# VS Code (optional – auskommentieren um Launch-Konfiguration zu committen)
+# VS Code (optional – uncomment to commit launch configuration)
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -56,13 +56,13 @@ windows/**/winui_packages/
 *.sln.docstates
 *.[Cc]ache
 
-# Android (falls später hinzugefügt)
+# Android (if added later)
 **/android/.gradle/
 **/android/local.properties
 **/android/key.properties
 **/android/**/GeneratedPluginRegistrant.*
 
-# iOS (falls später hinzugefügt)
+# iOS (if added later)
 **/ios/Flutter/
 **/ios/Pods/
 **/ios/.symlinks/

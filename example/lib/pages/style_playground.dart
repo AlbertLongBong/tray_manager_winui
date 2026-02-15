@@ -288,7 +288,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
   void _copyCode() {
     final code = _generateDartCode();
     Clipboard.setData(ClipboardData(text: code));
-    BotToast.showText(text: 'Code in Zwischenablage kopiert');
+    BotToast.showText(text: 'Code copied to clipboard');
   }
 
   void _applyPreset(String preset) {
@@ -347,17 +347,17 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
               border: Border.all(color: Colors.blue.shade200),
             ),
             child: const Text(
-              'Änderungen werden sofort übernommen. '
-              'Rechtsklick auf das Tray-Icon zur Vorschau.',
+              'Changes apply immediately. '
+              'Right-click the tray icon to preview.',
               style: TextStyle(fontSize: 13),
             ),
           ),
           const SizedBox(height: 16),
           _buildPresetButtons(),
           const SizedBox(height: 24),
-          _buildSectionTitle('Farben'),
+          _buildSectionTitle('Colors'),
           _buildColorRow(
-            'Hintergrund',
+            'Background',
             _backgroundColor,
             (c) {
               setState(() => _backgroundColor = c);
@@ -366,7 +366,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _backgroundColor = null),
           ),
           _buildColorRow(
-            'Textfarbe',
+            'Text color',
             _textColor,
             (c) {
               setState(() => _textColor = c);
@@ -375,7 +375,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _textColor = null),
           ),
           _buildColorRow(
-            'Trennlinie',
+            'Separator',
             _separatorColor,
             (c) {
               setState(() => _separatorColor = c);
@@ -384,7 +384,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _separatorColor = null),
           ),
           _buildColorRow(
-            'Text (deaktiviert)',
+            'Disabled text',
             _disabledTextColor,
             (c) {
               setState(() => _disabledTextColor = c);
@@ -393,7 +393,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _disabledTextColor = null),
           ),
           _buildColorRow(
-            'Hover-Hintergrund',
+            'Hover background',
             _hoverBackgroundColor,
             (c) {
               setState(() => _hoverBackgroundColor = c);
@@ -402,7 +402,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _hoverBackgroundColor = null),
           ),
           _buildColorRow(
-            'Untermenü geöffnet (Hintergrund)',
+            'Submenu opened (background)',
             _subMenuOpenedBackgroundColor,
             (c) {
               setState(() => _subMenuOpenedBackgroundColor = c);
@@ -411,7 +411,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _subMenuOpenedBackgroundColor = null),
           ),
           _buildColorRow(
-            'Untermenü geöffnet (Text)',
+            'Submenu opened (text)',
             _subMenuOpenedTextColor,
             (c) {
               setState(() => _subMenuOpenedTextColor = c);
@@ -420,7 +420,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _subMenuOpenedTextColor = null),
           ),
           _buildColorRow(
-            'Checkbox-Stripe (statt Häkchen)',
+            'Checkbox stripe (instead of checkmark)',
             _checkedIndicatorColor,
             (c) {
               setState(() => _checkedIndicatorColor = c);
@@ -429,7 +429,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _checkedIndicatorColor = null),
           ),
           _buildColorRow(
-            'Rahmen',
+            'Border',
             _borderColor,
             (c) {
               setState(() => _borderColor = c);
@@ -438,8 +438,8 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             onClear: () => setState(() => _borderColor = null),
           ),
           const SizedBox(height: 24),
-          _buildSectionTitle('Schrift'),
-          _buildDoubleSlider('Schriftgröße', _fontSize, 8, 32, (v) {
+          _buildSectionTitle('Font'),
+          _buildDoubleSlider('Font size', _fontSize, 8, 32, (v) {
             setState(() => _fontSize = v);
             _notifyStyleChanged();
           }),
@@ -448,24 +448,24 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
           _buildFontStyleRow(),
           const SizedBox(height: 24),
           _buildSectionTitle('Layout'),
-          _buildDoubleSlider('Eckenradius', _cornerRadius, 0, 24, (v) {
+          _buildDoubleSlider('Corner radius', _cornerRadius, 0, 24, (v) {
             setState(() => _cornerRadius = v);
             _notifyStyleChanged();
           }),
           _buildPaddingRow(),
-          _buildDoubleSlider('Mindestbreite', _minWidth, 120, 400, (v) {
+          _buildDoubleSlider('Min width', _minWidth, 120, 400, (v) {
             setState(() => _minWidth = v);
             _notifyStyleChanged();
           }),
-          _buildDoubleSlider('Rahmendicke', _borderThickness, 0, 8, (v) {
+          _buildDoubleSlider('Border thickness', _borderThickness, 0, 8, (v) {
             setState(() => _borderThickness = v);
             _notifyStyleChanged();
           }),
-          _buildDoubleSlider('Schatten (Elevation)', _shadowElevation, 0, 64, (v) {
+          _buildDoubleSlider('Shadow (elevation)', _shadowElevation, 0, 64, (v) {
             setState(() => _shadowElevation = v);
             _notifyStyleChanged();
           }),
-          _buildDoubleSlider('Zeilenhöhe (Item)', _itemHeight, 16, 64, (v) {
+          _buildDoubleSlider('Item height', _itemHeight, 16, 64, (v) {
             setState(() => _itemHeight = v);
             _notifyStyleChanged();
           }),
@@ -614,7 +614,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          const SizedBox(width: 140, child: Text('Schriftart')),
+          const SizedBox(width: 140, child: Text('Font family')),
           Expanded(
             child: DropdownButtonFormField<String>(
               value: _fontFamilies.contains(_fontFamily) ? _fontFamily : null,
@@ -661,7 +661,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          const SizedBox(width: 140, child: Text('Schriftstärke')),
+          const SizedBox(width: 140, child: Text('Font weight')),
           Expanded(
             child: DropdownButtonFormField<FontWeight?>(
               value: _fontWeight,
@@ -695,7 +695,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          const SizedBox(width: 140, child: Text('Schriftstil')),
+          const SizedBox(width: 140, child: Text('Font style')),
           Expanded(
             child: DropdownButtonFormField<FontStyle?>(
               value: _fontStyle,
@@ -707,7 +707,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
               items: const [
                 DropdownMenuItem(value: null, child: Text('WinUI-Default')),
                 DropdownMenuItem(value: FontStyle.normal, child: Text('Normal')),
-                DropdownMenuItem(value: FontStyle.italic, child: Text('Kursiv')),
+                DropdownMenuItem(value: FontStyle.italic, child: Text('Italic')),
               ],
               onChanged: (v) {
                 setState(() => _fontStyle = v);
@@ -809,7 +809,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
         children: [
           const SizedBox(
             width: 140,
-            child: Text('Kompaktes Layout'),
+            child: Text('Compact layout'),
           ),
           Expanded(
             child: SwitchListTile(
@@ -818,7 +818,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
                 setState(() => _compactItemLayout = v);
                 _notifyStyleChanged();
               },
-              title: const Text('Ohne Icon-Platz vor Einträgen'),
+              title: const Text('Without icon space before items'),
               contentPadding: EdgeInsets.zero,
               dense: true,
             ),
@@ -857,7 +857,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
     return FilledButton.icon(
       onPressed: _copyCode,
       icon: const Icon(Icons.copy),
-      label: const Text('Code kopieren'),
+      label: const Text('Copy code'),
     );
   }
 }

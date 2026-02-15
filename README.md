@@ -4,30 +4,30 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.3+-blue.svg)](https://flutter.dev)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://docs.flutter.dev/platform-integration/windows)
 
-WinUI 3 Kontextmenü-Erweiterung für [tray_manager](https://github.com/leanflutter/tray_manager) – modernes Fluent Design unter Windows.
+WinUI 3 context menu extension for [tray_manager](https://github.com/leanflutter/tray_manager) – modern Fluent Design on Windows.
 
-![WinUI Kontextmenü – Dark Theme](screenshots/context_menu_dark_default.png)
+![WinUI Context Menu – Dark Theme](screenshots/context_menu_dark_default.png)
 
-![WinUI Kontextmenü – Light Theme](screenshots/context_menu_light_default.png)
+![WinUI Context Menu – Light Theme](screenshots/context_menu_light_default.png)
 
-Statt des klassischen Win32-Menüs (`CreatePopupMenu`/`TrackPopupMenu`) zeigt dieses Plugin ein WinUI 3 `MenuFlyout`. Es ist **kein Ersatz** für tray_manager, sondern eine **Ergänzung**: Die Tray-Icon-Infrastruktur bleibt bei tray_manager, nur die Menü-Rendering-Logik wird durch ein optionales WinUI-Menü ausgetauscht.
+Instead of the classic Win32 menu (`CreatePopupMenu`/`TrackPopupMenu`), this plugin displays a WinUI 3 `MenuFlyout`. It is **not a replacement** for tray_manager, but an **extension**: The tray icon infrastructure stays with tray_manager; only the menu rendering logic is swapped with an optional WinUI menu.
 
 ---
 
-## Inhaltsverzeichnis
+## Table of Contents
 
 - [Features](#features)
-- [Voraussetzungen](#voraussetzungen)
+- [Requirements](#requirements)
 - [Installation](#installation)
-- [Nutzung](#nutzung)
-- [API-Referenz](#api-referenz)
-- [Architektur](#architektur)
-- [Kontextmenü-Styling](#kontextmenü-styling)
-- [Build-Integration (WinUI)](#build-integration-winui)
-- [Windows App SDK Runtime installieren](#windows-app-sdk-runtime-installieren)
-- [Beispiel-App ausführen](#beispiel-app-ausführen)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Architecture](#architecture)
+- [Context Menu Styling](#context-menu-styling)
+- [Build Integration (WinUI)](#build-integration-winui)
+- [Install Windows App SDK Runtime](#install-windows-app-sdk-runtime)
+- [Run the Example App](#run-the-example-app)
 - [Troubleshooting](#troubleshooting)
-- [Einschränkungen](#einschränkungen)
+- [Limitations](#limitations)
 - [Status](#status)
 - [Links](#links)
 
@@ -35,27 +35,27 @@ Statt des klassischen Win32-Menüs (`CreatePopupMenu`/`TrackPopupMenu`) zeigt di
 
 ## Features
 
-| Feature | Beschreibung |
-|---------|--------------|
-| WinUI 3 MenuFlyout | Modernes Fluent Design statt klassischem Win32-Menü |
-| MenuItem (Standard) | Mit `label`, `onClick` |
-| MenuItem.separator() | Trennlinien |
-| MenuItem.checkbox() | Checkbox-Zustand, `checked`, `onClick` |
-| MenuItem.submenu() | Verschachtelte Untermenüs |
-| MenuItem(disabled: true) | Deaktivierte Einträge |
-| onMenuItemClick-Stream | Reaktive Klick-Verarbeitung |
-| Kontextmenü-Styling | Optional [WinUIContextMenuStyle](lib/src/winui_context_menu_style.dart) für Hintergrund, Textfarbe, Schrift, Ecken, Padding, Theme |
-| Klick außerhalb schließt Menü | Menü schließt sich beim Klick außerhalb (WM_ACTIVATE-basiert) |
+| Feature | Description |
+|---------|-------------|
+| WinUI 3 MenuFlyout | Modern Fluent Design instead of classic Win32 menu |
+| MenuItem (Standard) | With `label`, `onClick` |
+| MenuItem.separator() | Separator lines |
+| MenuItem.checkbox() | Checkbox state, `checked`, `onClick` |
+| MenuItem.submenu() | Nested submenus |
+| MenuItem(disabled: true) | Disabled items |
+| onMenuItemClick Stream | Reactive click handling |
+| Context Menu Styling | Optional [WinUIContextMenuStyle](lib/src/winui_context_menu_style.dart) for background, text color, font, corners, padding, theme |
+| Click Outside Closes Menu | Menu closes on outside click (WM_ACTIVATE-based) |
 
 ---
 
-## Voraussetzungen
+## Requirements
 
-- **Windows**: 10 1903+ (für XAML Islands)
-- **Windows App SDK**: 1.5+ (MddBootstrap, MenuFlyout.ShowAt-Fix [microsoft-ui-xaml#7989](https://github.com/microsoft/microsoft-ui-xaml/issues/7989))
-- **Build**: Visual Studio 2022 mit C++ Desktop Development Workload
-- **Runtime**: Windows App Runtime (z.B. `winget install Microsoft.WindowsAppRuntime.1.5`)
-- **NuGet**: Im PATH für automatischen Paket-Download (Microsoft.WindowsAppSDK, Microsoft.Windows.CppWinRT)
+- **Windows**: 10 1903+ (for XAML Islands)
+- **Windows App SDK**: 1.5+ (MddBootstrap, MenuFlyout.ShowAt fix [microsoft-ui-xaml#7989](https://github.com/microsoft/microsoft-ui-xaml/issues/7989))
+- **Build**: Visual Studio 2022 with C++ Desktop Development Workload
+- **Runtime**: Windows App Runtime (e.g. `winget install Microsoft.WindowsAppRuntime.1.5`)
+- **NuGet**: In PATH for automatic package download (Microsoft.WindowsAppSDK, Microsoft.Windows.CppWinRT)
 
 ---
 
@@ -65,10 +65,10 @@ Statt des klassischen Win32-Menüs (`CreatePopupMenu`/`TrackPopupMenu`) zeigt di
 dependencies:
   tray_manager: ^0.5.2
   tray_manager_winui: ^0.1.0
-  menu_base: ^0.1.0   # kommt über tray_manager, ggf. explizit erforderlich
+  menu_base: ^0.1.0   # comes via tray_manager, may need to be explicit
 ```
 
-**Bis zur Veröffentlichung auf pub.dev:** Nutze stattdessen die Git-Dependency:
+**Until published on pub.dev:** Use the Git dependency instead:
 
 ```yaml
 tray_manager_winui:
@@ -76,18 +76,18 @@ tray_manager_winui:
     url: https://github.com/AlbertLongBong/tray_manager_winui.git
 ```
 
-`menu_base` wird von tray_manager re-exportiert; bei path-Dependencies (lokale Entwicklung) ggf. explizit angeben.
+`menu_base` is re-exported by tray_manager; with path dependencies (local development) you may need to specify it explicitly.
 
 ---
 
-## Nutzung
+## Usage
 
-**Wichtig**: `tray_manager_winui` ersetzt *nur* die Menü-Anzeige. Tray-Icon, `setIcon`, `setToolTip` und `TrayListener` bleiben bei tray_manager.
+**Important:** `tray_manager_winui` only replaces the menu display. Tray icon, `setIcon`, `setToolTip`, and `TrayListener` remain with tray_manager.
 
-1. **Tray mit tray_manager einrichten** – Icon, Tooltip, Listener
-2. **Menü mit `TrayManagerWinUI.instance.setContextMenu()`** – *nicht* `trayManager.setContextMenu()`
-3. **onTrayIconRightMouseDown** – `TrayManagerWinUI.instance.showContextMenu()` statt `trayManager.popUpContextMenu()`
-4. **onMenuItemClick** – auf `TrayManagerWinUI.instance.onMenuItemClick` hören
+1. **Set up tray with tray_manager** – Icon, tooltip, listener
+2. **Menu with `TrayManagerWinUI.instance.setContextMenu()`** – *not* `trayManager.setContextMenu()`
+3. **onTrayIconRightMouseDown** – `TrayManagerWinUI.instance.showContextMenu()` instead of `trayManager.popUpContextMenu()`
+4. **onMenuItemClick** – listen to `TrayManagerWinUI.instance.onMenuItemClick`
 
 ```dart
 import 'dart:io';
@@ -115,7 +115,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
   void _setupWinUIMenu() {
     _menu = Menu(
       items: [
-        MenuItem(label: 'Öffnen', onClick: (_) => /* ... */),
+        MenuItem(label: 'Open', onClick: (_) => /* ... */),
         MenuItem.separator(),
         MenuItem.checkbox(
           label: 'Option A',
@@ -123,16 +123,16 @@ class _MyAppState extends State<MyApp> with TrayListener {
           onClick: (item) => setState(() => _optA = item.checked ?? false),
         ),
         MenuItem.submenu(
-          label: 'Mehr',
+          label: 'More',
           submenu: Menu(items: [
-            MenuItem(label: 'Unterpunkt', onClick: (_) => /* ... */),
+            MenuItem(label: 'Submenu Item', onClick: (_) => /* ... */),
           ]),
         ),
         MenuItem.separator(),
-        MenuItem(label: 'Beenden', onClick: (_) => exit(0)),
+        MenuItem(label: 'Exit', onClick: (_) => exit(0)),
       ],
     );
-    // Optional: style-Parameter für angepasstes Erscheinungsbild
+    // Optional: style parameter for custom appearance
     TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuStyle(
       backgroundColor: Color(0xFF2D2D2D),
       textColor: Color(0xFFFFFFFF),
@@ -144,7 +144,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
   }
 
   void _handleMenuItemClick(MenuItem menuItem) {
-    // Klick-Verarbeitung (z.B. für Checkbox State-Update)
+    // Click handling (e.g. for checkbox state update)
   }
 
   @override
@@ -152,24 +152,24 @@ class _MyAppState extends State<MyApp> with TrayListener {
     TrayManagerWinUI.instance.showContextMenu();
   }
 
-  // Weitere TrayListener-Methoden...
+  // Other TrayListener methods...
 }
 ```
 
 ---
 
-## API-Referenz
+## API Reference
 
-| Methode/Property | Beschreibung |
-|------------------|--------------|
-| `TrayManagerWinUI.instance` | Singleton-Instanz |
-| `setContextMenu(Menu menu, {WinUIContextMenuStyle? style})` | Menü-Definition setzen. Optional `style` für angepasstes Erscheinungsbild. |
-| `showContextMenu({double? x, double? y, WinUIFlyoutPlacement? placement})` | Menü anzeigen. Ohne `x`/`y` an Cursor-Position; mit beiden an (x,y) in Bildschirm-Pixeln. `placement` steuert Position relativ zum Anker (z.B. `WinUIFlyoutPlacement.right` für Linkshänder). Gibt `true` wenn WinUI aktiv, sonst `false`. |
-| `onMenuItemClick` | `Stream<MenuItem>` – Klicks auf Menüpunkte |
+| Method/Property | Description |
+|-----------------|-------------|
+| `TrayManagerWinUI.instance` | Singleton instance |
+| `setContextMenu(Menu menu, {WinUIContextMenuStyle? style})` | Set menu definition. Optional `style` for custom appearance. |
+| `showContextMenu({double? x, double? y, WinUIFlyoutPlacement? placement})` | Show menu. Without `x`/`y` at cursor position; with both at (x,y) in screen pixels. `placement` controls position relative to anchor (e.g. `WinUIFlyoutPlacement.right` for left-handed users). Returns `true` if WinUI active, otherwise `false`. |
+| `onMenuItemClick` | `Stream<MenuItem>` – Clicks on menu items |
 
 ---
 
-## Architektur
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -189,41 +189,41 @@ flowchart TB
     end
 ```
 
-- **tray_manager**: Tray-Icon, `setIcon`, `setToolTip`, Events (`onTrayIconRightMouseDown`)
-- **tray_manager_winui**: Nur Anzeige des WinUI 3 Kontextmenüs – kein Tray-Icon
+- **tray_manager**: Tray icon, `setIcon`, `setToolTip`, Events (`onTrayIconRightMouseDown`)
+- **tray_manager_winui**: Only displays the WinUI 3 context menu – no tray icon
 
 ---
 
-## Kontextmenü-Styling
+## Context Menu Styling
 
-Über den optionalen Parameter `style` in `setContextMenu()` lässt sich das Erscheinungsbild des WinUI-Kontextmenüs anpassen:
+The optional `style` parameter in `setContextMenu()` lets you customize the WinUI context menu appearance:
 
-![Individuelles Styling 1](screenshots/context_menu_rounded_colored.png)
-![Individuelles Styling 2](screenshots/context_menu_rounded_colored_2.png)
+![Custom Styling 1](screenshots/context_menu_rounded_colored.png)
+![Custom Styling 2](screenshots/context_menu_rounded_colored_2.png)
 
-| Eigenschaft | Typ | Beschreibung |
-|-------------|-----|--------------|
-| `backgroundColor` | `Color?` | Hintergrund des Menü-Popups |
-| `textColor` | `Color?` | Textfarbe der Menüeinträge |
-| `fontSize` | `double?` | Schriftgröße (logische Pixel) |
-| `fontFamily` | `String?` | Schriftart (z.B. "Segoe UI") |
-| `fontWeight` | `FontWeight?` | Schriftstärke (100–900) |
-| `cornerRadius` | `double?` | Abrundung der Ecken |
-| `padding` | `EdgeInsets?` | Innenabstand (left, top, right, bottom) |
-| `minWidth` | `double?` | Mindestbreite des Menüs |
-| `themeMode` | `WinUIThemeMode?` | `light`, `dark` oder `system` |
-| `separatorColor` | `Color?` | Farbe der Trennlinien |
-| `disabledTextColor` | `Color?` | Textfarbe für deaktivierte Einträge |
-| `hoverBackgroundColor` | `Color?` | Hintergrund beim Hover über Einträge |
-| `subMenuOpenedBackgroundColor` | `Color?` | Hintergrund wenn Untermenü geöffnet ist (ausgewählter Hauptpunkt) |
-| `subMenuOpenedTextColor` | `Color?` | Textfarbe wenn Untermenü geöffnet ist |
-| `borderColor` | `Color?` | Rahmenfarbe um das Menü |
-| `borderThickness` | `double?` | Rahmendicke in logischen Pixeln |
-| `fontStyle` | `FontStyle?` | `FontStyle.normal` oder `FontStyle.italic` |
-| `checkedIndicatorColor` | `Color?` | Wenn gesetzt: farbiger 4px-Streifen links statt Häkchen rechts. Text bleibt mit anderen Einträgen bündig. |
-| `itemHeight` | `double?` | Mindesthöhe pro Menüeintrag in logischen Pixeln |
-| `shadowElevation` | `double?` | Schatten: 0 = aus, null = WinUI-Standard (~32px). Werte >0 setzen die Elevation programmatisch (Translation.Z). |
-| `compactItemLayout` | `bool` | Standard: `true`. Kompaktes Layout ohne Icon-Platz vor Einträgen. Bei `false` wird der WinUI-Standard mit Icon-Bereich verwendet (für Phase-2-Icons). |
+| Property | Type | Description |
+|----------|------|-------------|
+| `backgroundColor` | `Color?` | Menu popup background |
+| `textColor` | `Color?` | Menu item text color |
+| `fontSize` | `double?` | Font size (logical pixels) |
+| `fontFamily` | `String?` | Font family (e.g. "Segoe UI") |
+| `fontWeight` | `FontWeight?` | Font weight (100–900) |
+| `cornerRadius` | `double?` | Corner rounding |
+| `padding` | `EdgeInsets?` | Inner padding (left, top, right, bottom) |
+| `minWidth` | `double?` | Minimum menu width |
+| `themeMode` | `WinUIThemeMode?` | `light`, `dark`, or `system` |
+| `separatorColor` | `Color?` | Separator line color |
+| `disabledTextColor` | `Color?` | Text color for disabled items |
+| `hoverBackgroundColor` | `Color?` | Background on item hover |
+| `subMenuOpenedBackgroundColor` | `Color?` | Background when submenu is open (selected parent item) |
+| `subMenuOpenedTextColor` | `Color?` | Text color when submenu is open |
+| `borderColor` | `Color?` | Border color around menu |
+| `borderThickness` | `double?` | Border width in logical pixels |
+| `fontStyle` | `FontStyle?` | `FontStyle.normal` or `FontStyle.italic` |
+| `checkedIndicatorColor` | `Color?` | When set: colored 4px stripe on left instead of checkmark on right. Text stays aligned with other items. |
+| `itemHeight` | `double?` | Minimum height per menu item in logical pixels |
+| `shadowElevation` | `double?` | Shadow: 0 = off, null = WinUI default (~32px). Values >0 set elevation programmatically (Translation.Z). |
+| `compactItemLayout` | `bool` | Default: `true`. Compact layout without icon space before items. When `false`, WinUI standard with icon area is used (for Phase 2 icons). |
 
 ```dart
 TrayManagerWinUI.instance.setContextMenu(menu, style: const WinUIContextMenuStyle(
@@ -235,61 +235,61 @@ TrayManagerWinUI.instance.setContextMenu(menu, style: const WinUIContextMenuStyl
 ));
 ```
 
-Ohne `style` werden die WinUI-Standardwerte verwendet.
+Without `style`, WinUI default values are used.
 
 ---
 
-## Build-Integration (WinUI)
+## Build Integration (WinUI)
 
-- **Automatisch**: NuGet im PATH → CMake lädt WindowsAppSDK 1.5 + CppWinRT beim Konfigurieren
-- **Deaktivieren**: CMake-Option `-DTRAY_MANAGER_WINUI_USE_WINUI=OFF` (Stub-Modus)
-- **Ohne NuGet**: Stub wird verwendet (kein sichtbares Menü, keine Fehler)
-- **Bundled DLL**: `Microsoft.WindowsAppRuntime.Bootstrap.dll` wird ins Plugin-Verzeichnis kopiert
+- **Automatic**: NuGet in PATH → CMake loads WindowsAppSDK 1.5 + CppWinRT when configuring
+- **Disable**: CMake option `-DTRAY_MANAGER_WINUI_USE_WINUI=OFF` (stub mode)
+- **Without NuGet**: Stub is used (no visible menu, no errors)
+- **Bundled DLL**: `Microsoft.WindowsAppRuntime.Bootstrap.dll` is copied to the plugin directory
 
 ---
 
-## Windows App SDK Runtime installieren
+## Install Windows App SDK Runtime
 
-Für Endnutzer bzw. Entwickler-Umgebung:
+For end users or development:
 
 ```bash
 winget install Microsoft.WindowsAppRuntime.1.5
 ```
 
-Oder manuell: [Windows App SDK Releases](https://github.com/microsoft/WindowsAppSDK/releases)
+Or manually: [Windows App SDK Releases](https://github.com/microsoft/WindowsAppSDK/releases)
 
 ---
 
-## Beispiel-App ausführen
+## Run the Example App
 
-1. `cd tray_manager_winui/example` (`tray_icon.ico` ist bereits in `example/images/` enthalten)
+1. `cd tray_manager_winui/example` (`tray_icon.ico` is already in `example/images/`)
 2. `flutter pub get`
 3. `flutter run -d windows`
-4. Rechtsklick auf das Tray-Icon → WinUI-Kontextmenü
+4. Right-click the tray icon → WinUI context menu
 
-Die Beispiel-App hat zwei Tabs:
-- **Info**: Kurzer Hinweis zur Nutzung
-- **Styling**: Style-Playground mit allen Styling-Optionen – Farben, Schrift, Layout, Theme per UI steuerbar. Änderungen werden sofort übernommen; Rechtsklick auf das Tray-Icon zur Vorschau. Der Button „Code kopieren“ exportiert die aktuelle Konfiguration als fertigen Dart-Code.
+The example app has two tabs:
+- **Info**: Brief usage hint
+- **Styling**: Style playground with all styling options – colors, font, layout, theme controllable via UI. Changes apply immediately; right-click the tray icon to preview. The "Copy code" button exports the current configuration as ready-to-use Dart code.
 
 ---
 
 ## Troubleshooting
 
-| Problem | Lösung |
-|---------|--------|
-| Menü erscheint nicht | NuGet im PATH? Windows App SDK installiert? `showContextMenu()` gibt `false`? |
-| Build-Fehler (WinRT/WindowsAppSDK) | VS 2022 C++ Desktop, Windows 10 SDK 19041+ |
-| "MddBootstrap" Fehler | WindowsAppRuntime per `winget install Microsoft.WindowsAppRuntime.1.5` installieren |
+| Problem | Solution |
+|---------|----------|
+| Menu does not appear | NuGet in PATH? Windows App SDK installed? `showContextMenu()` returns `false`? |
+| Build error (WinRT/WindowsAppSDK) | VS 2022 C++ Desktop, Windows 10 SDK 19041+ |
+| "MddBootstrap" error | Install WindowsAppRuntime via `winget install Microsoft.WindowsAppRuntime.1.5` |
 
-In Debug-Modus gibt `showContextMenu()` bei fehlgeschlagener Anzeige eine Hinweismeldung in der Konsole aus.
+In debug mode, `showContextMenu()` prints a console message when display fails.
 
 ---
 
-## Einschränkungen
+## Limitations
 
-- **Plattform**: Nur Windows – auf macOS/Linux ist `showContextMenu()` ein No-Op
-- **Icons**: Menü-Icons noch nicht implementiert (Phase 2)
-- **tray_manager**: Erfordert tray_manager für das Tray-Icon; dieses Plugin rendert nur das Menü
+- **Platform**: Windows only – on macOS/Linux `showContextMenu()` is a no-op
+- **Icons**: Menu icons not yet implemented (Phase 2)
+- **tray_manager**: Requires tray_manager for the tray icon; this plugin only renders the menu
 
 ---
 
@@ -297,18 +297,18 @@ In Debug-Modus gibt `showContextMenu()` bei fehlgeschlagener Anzeige eine Hinwei
 
 | Feature | Status |
 |---------|--------|
-| Dart-API, Method Channel | ✅ |
-| Native setContextMenu, showContextMenu | ✅ |
-| WinUI MenuFlyout (MVP) | ✅ |
-| Separator, disabled, Submenus, Checkbox | ✅ |
-| Kontextmenü-Styling (WinUIContextMenuStyle) | ✅ |
-| Menü-Icons | 🔲 Phase 2 |
+| Dart API, Method Channel | done |
+| Native setContextMenu, showContextMenu | done |
+| WinUI MenuFlyout (MVP) | done |
+| Separator, disabled, Submenus, Checkbox | done |
+| Context Menu Styling (WinUIContextMenuStyle) | done |
+| Menu Icons | Phase 2 (not implemented) |
 
 ---
 
 ## Links
 
-- [Lizenz (MIT)](LICENSE)
+- [License (MIT)](LICENSE)
 - [tray_manager](https://github.com/leanflutter/tray_manager)
 - [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
 - [MenuFlyout (WinUI 3)](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.menuflyout)

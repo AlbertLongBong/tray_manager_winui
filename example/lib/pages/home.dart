@@ -24,7 +24,7 @@ class HomePage extends StatelessWidget {
                 const Icon(Icons.touch_app, size: 64, color: Colors.blue),
                 const SizedBox(height: 16),
                 const Text(
-                  'Rechtsklick auf das Tray-Icon',
+                  'Right-click the tray icon',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -33,12 +33,12 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Öffnet das WinUI 3 Kontextmenü mit den aktuellen Styling-Einstellungen aus dem Styling-Tab.',
+                  'Opens the WinUI 3 context menu with the current styling settings from the Styling tab.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Tipp: Wechsle zum Styling-Tab, um alle Optionen (Farben, Schrift, Ecken, etc.) zu konfigurieren und den Code zu kopieren.',
+                  'Tip: Switch to the Styling tab to configure all options (colors, font, corners, etc.) and copy the code.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.grey,
@@ -47,7 +47,7 @@ class HomePage extends StatelessWidget {
                 ),
               ] else
                 const Text(
-                  'Dieses Plugin funktioniert nur unter Windows.',
+                  'This plugin works only on Windows.',
                   style: TextStyle(color: Colors.orange, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),

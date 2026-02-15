@@ -1,3 +1,3 @@
 # Tray Icons
 
-`tray_icon.ico` ist enthalten – die Beispiel-App kann direkt mit Tray-Icon ausgeführt werden. Falls du ein eigenes Icon verwenden möchtest, ersetze die Datei oder kopiere ein anderes `.ico` aus z.B. `tray_manager/example/images/`.
+`tray_icon.ico` is included – the example app can be run directly with a tray icon. If you want to use your own icon, replace the file or copy another `.ico` from e.g. `tray_manager/example/images/`.

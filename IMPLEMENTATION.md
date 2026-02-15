@@ -1,6 +1,6 @@
-# tray_manager_winui – Implementierung in deine App
+# tray_manager_winui – Integration into Your App
 
-Kurze Anleitung zur Integration des WinUI 3 Kontextmenüs in eine Flutter-App.
+Short guide for integrating the WinUI 3 context menu into a Flutter app.
 
 ## 1. Dependencies
 
@@ -9,7 +9,7 @@ Kurze Anleitung zur Integration des WinUI 3 Kontextmenüs in eine Flutter-App.
 dependencies:
   tray_manager: ^0.5.2
   tray_manager_winui: ^0.1.0
-  menu_base: ^0.1.0   # optional, wird oft von tray_manager mitgebracht
+  menu_base: ^0.1.0   # optional, often brought in by tray_manager
 ```
 
 ## 2. Setup in initState
@@ -31,7 +31,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
 
     if (Platform.isWindows) {
       trayManager.setIcon('images/tray_icon.ico');
-      trayManager.setToolTip('Meine App');
+      trayManager.setToolTip('My App');
     }
 
     _setupContextMenu();
@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
   void _setupContextMenu() {
     _menu = Menu(
       items: [
-        MenuItem(label: 'Öffnen', onClick: (_) => /* ... */),
+        MenuItem(label: 'Open', onClick: (_) => /* ... */),
         MenuItem.separator(),
         MenuItem.checkbox(
           label: 'Option A',
@@ -48,28 +48,28 @@ class _MyAppState extends State<MyApp> with TrayListener {
           onClick: (item) => setState(() => /* update state */),
         ),
         MenuItem.submenu(
-          label: 'Mehr',
+          label: 'More',
           submenu: Menu(items: [
-            MenuItem(label: 'Unterpunkt', onClick: (_) => /* ... */),
+            MenuItem(label: 'Submenu Item', onClick: (_) => /* ... */),
           ]),
         ),
         MenuItem.separator(),
-        MenuItem(label: 'Beenden', onClick: (_) => exit(0)),
+        MenuItem(label: 'Exit', onClick: (_) => exit(0)),
       ],
     );
 
-    // WinUI-Menü setzen (nicht trayManager.setContextMenu!)
+    // Set WinUI menu (not trayManager.setContextMenu!)
     TrayManagerWinUI.instance.setContextMenu(_menu!);
     TrayManagerWinUI.instance.onMenuItemClick.listen(_handleMenuItemClick);
   }
 
   void _handleMenuItemClick(MenuItem item) {
-    // Z.B. für Checkbox-State-Updates
+    // e.g. for checkbox state updates
   }
 }
 ```
 
-## 3. Rechtsklick öffnet WinUI-Menü
+## 3. Right-Click Opens WinUI Menu
 
 ```dart
 @override
@@ -80,11 +80,11 @@ void onTrayIconRightMouseDown() {
 
 ## 4. Optional: Styling
 
-`WinUIContextMenuStyle` unterstützt alle folgenden Properties. Alle sind optional – null nutzt den WinUI-Standard.
+`WinUIContextMenuStyle` supports all of the following properties. All are optional – null uses the WinUI default.
 
 ```dart
 TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuStyle(
-  // Hintergrund und Rahmen
+  // Background and border
   backgroundColor: Color(0xFF2D2D2D),
   borderColor: Color(0xFF404040),
   borderThickness: 1.0,
@@ -94,7 +94,7 @@ TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuSt
   padding: EdgeInsets.all(8),
   minWidth: 200,
   itemHeight: 36,
-  compactItemLayout: true,  // true = kompakt ohne Icon-Platz
+  compactItemLayout: true,  // true = compact without icon space
 
   // Text
   textColor: Color(0xFFFFFFFF),
@@ -103,7 +103,7 @@ TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuSt
   fontWeight: FontWeight.w400,
   fontStyle: FontStyle.normal,
 
-  // Theme und Farben
+  // Theme and colors
   themeMode: WinUIThemeMode.dark,
   separatorColor: Color(0xFF505050),
   disabledTextColor: Color(0xFF808080),
@@ -111,20 +111,20 @@ TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuSt
   subMenuOpenedBackgroundColor: Color(0xFF404040),
   subMenuOpenedTextColor: Color(0xFFFFFFFF),
 
-  // Checkbox-Indikator
-  checkedIndicatorColor: Color(0xFF4FC3F7),  // null = Häkchen rechts
+  // Checkbox indicator
+  checkedIndicatorColor: Color(0xFF4FC3F7),  // null = checkmark on right
 
-  // Effekte
-  shadowElevation: 32,  // 0 = aus, null = WinUI-Standard
+  // Effects
+  shadowElevation: 32,  // 0 = off, null = WinUI default
 ));
 ```
 
-## Checkliste
+## Checklist
 
-| Schritt | Erledigt |
-|---------|----------|
+| Step | Done |
+|------|------|
 | `tray_manager` + `tray_manager_winui` in pubspec | ☐ |
-| Tray-Icon mit `trayManager.setIcon()` | ☐ |
-| Menü mit `TrayManagerWinUI.instance.setContextMenu()` (nicht trayManager) | ☐ |
+| Tray icon with `trayManager.setIcon()` | ☐ |
+| Menu with `TrayManagerWinUI.instance.setContextMenu()` (not trayManager) | ☐ |
 | `onTrayIconRightMouseDown()` → `TrayManagerWinUI.instance.showContextMenu()` | ☐ |
-| Windows App SDK installiert (`winget install Microsoft.WindowsAppRuntime.1.5`) | ☐ |
+| Windows App SDK installed (`winget install Microsoft.WindowsAppRuntime.1.5`) | ☐ |
