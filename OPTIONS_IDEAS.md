@@ -15,6 +15,8 @@ Overview of possible extensions for the plugin. No priorities – just a collect
 | `iconColor` | Color for icons (preparatory for Phase 2) | Low |
 | ~~`fontStyle`~~ | ~~Italic/Normal~~ | Done |
 | `keyboardAcceleratorColor` | Color for keyboard shortcuts (e.g. "Ctrl+C") | Medium – resource keys in WinUI |
+| ~~`maxHeight`~~ | ~~Maximum menu height with scrollbar~~ | Done |
+| ~~`enableOpenCloseAnimations`~~ | ~~Enable/disable open/close animations~~ | Done |
 
 ---
 
@@ -22,9 +24,9 @@ Overview of possible extensions for the plugin. No priorities – just a collect
 
 | Option | Description | Dependency |
 |--------|-------------|------------|
-| **Icons** | `MenuItem(icon: 'path/to/icon.ico')` – WinUI MenuFlyoutItem.Icon | Phase 2, may need menu_base extension |
-| **accelerator** | `MenuItem(accelerator: 'Ctrl+C')` – Text to the right of label | menu_base extension, WinUI KeyboardAcceleratorTextOverride |
-| **tooltip** | `MenuItem(tooltip: 'Longer description')` | menu_base + WinUI ToolTipService.SetToolTip |
+| ~~**Icons**~~ | ~~FontIcon via glyph codepoints – WinUIIcon.glyph / WinUIIcon.symbol~~ | Done (WinUIMenuItem.winuiIcon, also reads menu_base icon field) |
+| ~~**accelerator**~~ | ~~Shortcut text right of label – KeyboardAcceleratorTextOverride~~ | Done (WinUIMenuItem.acceleratorText) |
+| ~~**tooltip**~~ | ~~Tooltip on hover – ToolTipService.SetToolTip~~ | Done (reads menu_base toolTip field natively) |
 
 ---
 
@@ -42,15 +44,18 @@ Overview of possible extensions for the plugin. No priorities – just a collect
 
 | Option | Description |
 |--------|-------------|
-| `maxHeight` | Maximum menu height with scrollbar |
+| ~~`maxHeight`~~ | ~~Maximum menu height with scrollbar~~ (Done – moved to Styling) |
 | `exclusionRect` | Areas the menu should avoid (e.g. taskbar) |
+| ~~`RadioMenuFlyoutItem`~~ | ~~Radio button items with mutual exclusion groups~~ (Done – WinUIMenuItem.radio with GroupName) |
+| ~~`MenuFlyout Events`~~ | ~~Expose Opening/Closing/Closed events to Dart~~ (Done – onMenuOpening/onMenuClosing/onMenuClosed streams) |
+| `Acrylic/Mica Backdrop` | System backdrop materials for the menu popup (complex with XAML Islands) |
 
 ---
 
 ## Prioritization (optional)
 
-**Quick to implement:** ~~borderColor/borderThickness~~, ~~fontStyle~~, ~~showContextMenuAt(x,y)~~, ~~itemHeight~~ (done). inputDevicePrefersRightSide: not in WinUI 3 API.
+**Quick to implement:** ~~borderColor/borderThickness~~, ~~fontStyle~~, ~~showContextMenuAt(x,y)~~, ~~itemHeight~~, ~~maxHeight~~, ~~enableOpenCloseAnimations~~ (done). inputDevicePrefersRightSide: not in WinUI 3 API.
 
-**High value:** Icons (Phase 2), accelerator (keyboard shortcuts), ~~placement~~ (done)
+**High value:** ~~Icons~~ (done), ~~accelerator~~ (done), ~~placement~~ (done), ~~RadioMenuFlyoutItem~~ (done)
 
-**Nice-to-have:** ~~Shadow~~ (done), checkbox styling, tooltip
+**Nice-to-have:** ~~Shadow~~ (done), checkbox styling, ~~tooltip~~ (done), Acrylic/Mica backdrop, ~~MenuFlyout events~~ (done)

@@ -3,6 +3,7 @@
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <future>
@@ -55,14 +56,83 @@ std::wstring Utf8ToWide(const std::string& utf8) {
   return result;
 }
 
+std::wstring XamlEscapeAttribute(const std::wstring& input) {
+  std::wstring result;
+  result.reserve(input.size() + input.size() / 4);
+  for (wchar_t c : input) {
+    switch (c) {
+      case L'&': result += L"&amp;"; break;
+      case L'<': result += L"&lt;"; break;
+      case L'>': result += L"&gt;"; break;
+      case L'"': result += L"&quot;"; break;
+      case L'\'': result += L"&apos;"; break;
+      default: result += c; break;
+    }
+  }
+  return result;
+}
+
+void DebugLog(const wchar_t* msg) {
+  OutputDebugStringW(msg);
+}
+
+void DebugLog(const wchar_t* context, HRESULT hr) {
+  wchar_t buf[256];
+  swprintf_s(buf, L"TrayWinUI: %s (HRESULT 0x%08X)\n",
+             context, static_cast<unsigned>(hr));
+  OutputDebugStringW(buf);
+}
+
+// Platform-thread callback window for thread-safe InvokeMethod calls.
+// Flutter requires method channel messages on the platform thread.
+// WinUI event handlers run on the DispatcherQueue thread, so we
+// PostMessage back to this message-only window on the platform thread.
+HWND g_platformCallbackHwnd = nullptr;
+constexpr UINT WM_FLUTTER_INVOKE = WM_APP + 100;
+
+struct PendingInvoke {
+  std::string method;
+  flutter::EncodableValue args;
+  flutter::MethodChannel<flutter::EncodableValue>* channel;
+};
+
+LRESULT CALLBACK PlatformCallbackProc(HWND hwnd, UINT msg,
+                                       WPARAM wParam, LPARAM lParam) {
+  if (msg == WM_FLUTTER_INVOKE) {
+    auto* pending = reinterpret_cast<PendingInvoke*>(lParam);
+    if (pending && pending->channel) {
+      pending->channel->InvokeMethod(
+          pending->method,
+          std::make_unique<flutter::EncodableValue>(std::move(pending->args)));
+    }
+    delete pending;
+    return 0;
+  }
+  return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+void InvokeOnPlatformThread(
+    flutter::MethodChannel<flutter::EncodableValue>* channel,
+    const std::string& method,
+    flutter::EncodableValue args = flutter::EncodableValue()) {
+  if (!g_platformCallbackHwnd || !channel) return;
+  auto* pending = new PendingInvoke{method, std::move(args), channel};
+  if (!PostMessageW(g_platformCallbackHwnd, WM_FLUTTER_INVOKE, 0,
+                    reinterpret_cast<LPARAM>(pending))) {
+    delete pending;
+  }
+}
+
 struct WinUIState {
   bool initialized = false;
   bool init_in_progress = false;
+  bool init_failed = false;
   std::condition_variable cv;
   DispatcherQueueController controller{nullptr};
   DispatcherQueue queue{nullptr};
   winrt::Microsoft::UI::Xaml::Hosting::WindowsXamlManager xamlManager{nullptr};
   std::mutex mutex;
+  std::atomic<bool> menu_showing{false};
 };
 
 WinUIState& GetWinUIState() {
@@ -80,25 +150,30 @@ struct MenuHolder {
 // Data for the host window subclass to handle click-outside close.
 struct MenuHostData {
   WNDPROC oldProc;
-  MenuHolder* holder;
+  std::shared_ptr<MenuHolder> holder;
 };
 
 LRESULT CALLBACK MenuHostWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   auto* data = reinterpret_cast<MenuHostData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 
-  if (msg == WM_ACTIVATE && LOWORD(wParam) == WA_INACTIVE && data && data->holder) {
+  // Use WM_ACTIVATEAPP instead of WM_ACTIVATE to avoid killing the flyout
+  // when WinUI opens a submenu popup (which steals focus from host window
+  // but stays within the same process). WM_ACTIVATEAPP only fires when
+  // focus moves to a different application.
+  if (msg == WM_ACTIVATEAPP && wParam == FALSE && data && data->holder) {
     try {
       data->holder->flyout.Hide();
-    } catch (...) {
-      // Ignore; Closed handler will still run if flyout was open
+    } catch (const winrt::hresult_error& e) {
+      DebugLog(L"MenuHostWndProc: flyout.Hide() failed", e.code());
     }
-    data->holder = nullptr;  // Prevent double execution
   }
 
   if (msg == WM_DESTROY && data) {
     WNDPROC oldProc = data->oldProc;
     SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+    data->holder.reset();
     delete data;
+    GetWinUIState().menu_showing.store(false);
     return CallWindowProc(oldProc, hwnd, msg, wParam, lParam);
   }
 
@@ -108,8 +183,26 @@ LRESULT CALLBACK MenuHostWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 bool EnsureWinUIInitialized() {
   auto& state = GetWinUIState();
-  std::lock_guard lock(state.mutex);
-  if (state.initialized) return true;
+
+  {
+    std::unique_lock lock(state.mutex);
+    if (state.initialized) return true;
+    if (state.init_failed) return false;
+    if (state.init_in_progress) {
+      state.cv.wait_for(lock, std::chrono::seconds(30), [&state] {
+        return state.initialized || state.init_failed;
+      });
+      return state.initialized;
+    }
+    state.init_in_progress = true;
+  }
+
+  auto fail = [&state]() {
+    std::lock_guard lock(state.mutex);
+    state.init_in_progress = false;
+    state.init_failed = true;
+    state.cv.notify_all();
+  };
 
   // Windows App SDK 1.5 - required for MenuFlyout.ShowAt fix (microsoft-ui-xaml#7989)
   constexpr UINT32 c_majorMinor = 0x00010005;
@@ -120,15 +213,21 @@ bool EnsureWinUIInitialized() {
       c_majorMinor, c_versionTag, minVersion,
       MddBootstrapInitializeOptions_OnNoMatch_ShowUI);
   if (FAILED(hr)) {
-    state.init_in_progress = false;
-    state.cv.notify_all();
+    DebugLog(L"MddBootstrapInitialize2 failed", hr);
+    fail();
     return false;
   }
 
   // Do NOT call init_apartment: Flutter's platform thread is already STA.
   // CreateOnDedicatedThread manages its own apartment on the XAML thread.
-  state.controller = DispatcherQueueController::CreateOnDedicatedThread();
-  state.queue = state.controller.DispatcherQueue();
+  try {
+    state.controller = DispatcherQueueController::CreateOnDedicatedThread();
+    state.queue = state.controller.DispatcherQueue();
+  } catch (const winrt::hresult_error& e) {
+    DebugLog(L"DispatcherQueue creation failed", e.code());
+    fail();
+    return false;
+  }
 
   // Initialize WinUI XAML infrastructure on the dedicated thread.
   // Must be done before creating any XAML objects.
@@ -140,27 +239,30 @@ bool EnsureWinUIInitialized() {
                            try {
                              auto manager = XamlManager::InitializeForCurrentThread();
                              xamlInitPromise.set_value(std::move(manager));
-                           } catch (...) {
+                           } catch (const winrt::hresult_error&) {
                              xamlInitPromise.set_value(XamlManager{nullptr});
                            }
                          });
 
   try {
     state.xamlManager = xamlInitFuture.get();
-  } catch (...) {
-    state.init_in_progress = false;
-    state.cv.notify_all();
+  } catch (const std::exception&) {
+    DebugLog(L"XamlManager init failed (future exception)\n");
+    fail();
     return false;
   }
   if (!state.xamlManager) {
-    state.init_in_progress = false;
-    state.cv.notify_all();
+    DebugLog(L"XamlManager init returned null\n");
+    fail();
     return false;
   }
 
-  state.initialized = true;
-  state.init_in_progress = false;
-  state.cv.notify_all();
+  {
+    std::lock_guard lock(state.mutex);
+    state.initialized = true;
+    state.init_in_progress = false;
+    state.cv.notify_all();
+  }
   return true;
 }
 
@@ -289,6 +391,34 @@ Brush CreateBrushFromStyleInt(const flutter::EncodableMap& style,
   }
 }
 
+// Parses hex icon string ("0xHHHH") and creates a FontIcon.
+// Returns null IconElement on invalid input.
+IconElement CreateIconFromString(const std::string& iconStr,
+                                const std::string& fontFamily) {
+  if (iconStr.size() < 3 || iconStr[0] != '0' ||
+      (iconStr[1] != 'x' && iconStr[1] != 'X')) {
+    return nullptr;
+  }
+  unsigned long codepoint = 0;
+  try {
+    codepoint = std::stoul(iconStr.substr(2), nullptr, 16);
+  } catch (...) {
+    return nullptr;
+  }
+  if (codepoint == 0 || codepoint > 0xFFFF) return nullptr;
+
+  FontIcon fontIcon;
+  wchar_t glyph[2] = {static_cast<wchar_t>(codepoint), L'\0'};
+  fontIcon.Glyph(winrt::hstring(glyph));
+  fontIcon.FontSize(16);
+
+  if (!fontFamily.empty()) {
+    fontIcon.FontFamily(
+        Media::FontFamily(winrt::hstring(Utf8ToWide(fontFamily))));
+  }
+  return fontIcon;
+}
+
 void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) {
   if (style.empty()) return;
 
@@ -400,7 +530,7 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
 
   std::string fontFamily = GetStyleString(style, "fontFamily");
   if (!fontFamily.empty()) {
-    std::wstring wfont = Utf8ToWide(fontFamily);
+    std::wstring wfont = XamlEscapeAttribute(Utf8ToWide(fontFamily));
     xaml << L"<Setter Property='FontFamily' Value='" << wfont << L"'/>";
   }
 
@@ -472,8 +602,19 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
     if (shadowElevation <= 0) {
       xaml << L"<Setter Property='IsDefaultShadowEnabled' Value='False'/>";
     }
-    // shadowElevation > 0: WinUI default shadow (~32px) is used;
-    // Translation cannot be set via Style (not a DependencyProperty)
+  }
+
+  double maxHeight = GetStyleDouble(style, "maxHeight");
+  if (maxHeight > 0) {
+    xaml << L"<Setter Property='MaxHeight' Value='" << maxHeight << L"'/>";
+  }
+
+  auto animIt = style.find(flutter::EncodableValue("enableOpenCloseAnimations"));
+  if (animIt != style.end()) {
+    const auto* b = std::get_if<bool>(&animIt->second);
+    if (b && !*b) {
+      xaml << L"<Setter Property='AreOpenCloseAnimationsEnabled' Value='False'/>";
+    }
   }
 
   xaml << L"</Style>";
@@ -482,10 +623,10 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
     auto styleObj = winrt::Microsoft::UI::Xaml::Markup::XamlReader::Load(
         xaml.str()).as<Style>();
     flyout.MenuFlyoutPresenterStyle(styleObj);
-  } catch (...) {
-#ifndef NDEBUG
-    OutputDebugStringW(L"TrayWinUI: Failed to apply MenuFlyoutPresenterStyle\n");
-#endif
+  } catch (const winrt::hresult_error& e) {
+    DebugLog(L"Failed to apply MenuFlyoutPresenterStyle", e.code());
+  } catch (const std::exception&) {
+    DebugLog(L"Failed to apply MenuFlyoutPresenterStyle (std::exception)\n");
   }
 }
 
@@ -648,6 +789,10 @@ CompactItemStyles CreateCompactItemStyles(const flutter::EncodableMap* style_map
     result.toggleMenuFlyoutItemStyle =
         winrt::Microsoft::UI::Xaml::Markup::XamlReader::Load(tmiXaml).as<Style>();
 
+    // NOTE: RadioMenuFlyoutItem compact style removed. Radio items are now
+    // rendered as ToggleMenuFlyoutItem (reusing toggleMenuFlyoutItemStyle)
+    // because RadioMenuFlyoutItem crashes in DesktopWindowXamlSource contexts.
+
     // MenuFlyoutSubItem: Match WinUI default template structure for VisualState
     // compatibility. Root: Grid LayoutRoot with TemplateBinding Background.
     // SubMenuOpened must be in CommonStates (not SubMenuOpenedStates).
@@ -723,12 +868,33 @@ CompactItemStyles CreateCompactItemStyles(const flutter::EncodableMap* style_map
         L"</Grid></ControlTemplate></Setter.Value></Setter></Style>";
     result.menuFlyoutSubItemStyle =
         winrt::Microsoft::UI::Xaml::Markup::XamlReader::Load(msiXaml).as<Style>();
-  } catch (...) {
-#ifndef NDEBUG
-    OutputDebugStringW(L"TrayWinUI: Failed to create compact item styles\n");
-#endif
+  } catch (const winrt::hresult_error& e) {
+    DebugLog(L"Failed to create compact item styles", e.code());
+  } catch (const std::exception&) {
+    DebugLog(L"Failed to create compact item styles (std::exception)\n");
   }
   return result;
+}
+
+// Applies common per-item styling (fontSize, itemHeight, foreground).
+void ApplyItemStyling(MenuFlyoutItemBase const& itemBase,
+                      const flutter::EncodableMap& style_map,
+                      bool disabled) {
+  double fs = GetStyleDouble(style_map, "fontSize");
+  double itemH = GetStyleDouble(style_map, "itemHeight");
+  Brush fg = disabled && GetStyleInt(style_map, "disabledTextColor") != 0
+                 ? CreateBrushFromStyleInt(style_map, "disabledTextColor")
+                 : CreateBrushFromStyleInt(style_map, "textColor");
+
+  if (auto mfi = itemBase.try_as<MenuFlyoutItem>()) {
+    if (fs > 0) mfi.FontSize(fs);
+    if (itemH > 0) mfi.MinHeight(itemH);
+    if (fg) mfi.Foreground(fg);
+  } else if (auto sub = itemBase.try_as<MenuFlyoutSubItem>()) {
+    if (fs > 0) sub.FontSize(fs);
+    if (itemH > 0) sub.MinHeight(itemH);
+    if (fg) sub.Foreground(fg);
+  }
 }
 
 void AddMenuItemsToCollection(
@@ -766,6 +932,10 @@ void AddMenuItemsToCollection(
     int id = get_int("id");
     std::string label = get_str("label");
     bool disabled = get_bool("disabled");
+    std::string iconStr = get_str("icon");
+    std::string iconFontFamily = get_str("iconFontFamily");
+    std::string acceleratorText = get_str("acceleratorText");
+    std::string toolTipStr = get_str("toolTip");
 
     if (type == "separator") {
       MenuFlyoutSeparator sep;
@@ -792,20 +962,24 @@ void AddMenuItemsToCollection(
           }
         }
       }
-      if (compact_styles && compact_styles->menuFlyoutSubItemStyle) {
+      bool hasIcon = false;
+      if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) {
+          sub.Icon(iconElem);
+          hasIcon = true;
+        }
+      }
+      if (!hasIcon && compact_styles && compact_styles->menuFlyoutSubItemStyle) {
         sub.Style(compact_styles->menuFlyoutSubItemStyle);
       }
-      if (style_map) {
-        double fs = GetStyleDouble(*style_map, "fontSize");
-        if (fs > 0) sub.FontSize(fs);
-        double itemH = GetStyleDouble(*style_map, "itemHeight");
-        if (itemH > 0) sub.MinHeight(itemH);
-        Brush fg = disabled && GetStyleInt(*style_map, "disabledTextColor") != 0
-                       ? CreateBrushFromStyleInt(*style_map, "disabledTextColor")
-                       : CreateBrushFromStyleInt(*style_map, "textColor");
-        if (fg) sub.Foreground(fg);
+      if (!toolTipStr.empty()) {
+        ToolTipService::SetToolTip(sub,
+            winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
       }
+      if (style_map) ApplyItemStyling(sub, *style_map, disabled);
       collection.Append(sub);
+
     } else if (type == "checkbox") {
       ToggleMenuFlyoutItem toggle;
       toggle.Text(winrt::hstring(Utf8ToWide(label)));
@@ -819,23 +993,71 @@ void AddMenuItemsToCollection(
         if (cancelCloseForToggleClick) *cancelCloseForToggleClick = true;
         flutter::EncodableMap args;
         args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
-        channel->InvokeMethod("onMenuItemClick",
-                             std::make_unique<flutter::EncodableValue>(args));
+        InvokeOnPlatformThread(channel, "onMenuItemClick",
+                               flutter::EncodableValue(std::move(args)));
       });
-      if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
+      bool hasIcon = false;
+      if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) {
+          toggle.Icon(iconElem);
+          hasIcon = true;
+        }
+      }
+      if (!hasIcon && compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
         toggle.Style(compact_styles->toggleMenuFlyoutItemStyle);
       }
-      if (style_map) {
-        double fs = GetStyleDouble(*style_map, "fontSize");
-        if (fs > 0) toggle.FontSize(fs);
-        double itemH = GetStyleDouble(*style_map, "itemHeight");
-        if (itemH > 0) toggle.MinHeight(itemH);
-        Brush fg = disabled && GetStyleInt(*style_map, "disabledTextColor") != 0
-                       ? CreateBrushFromStyleInt(*style_map, "disabledTextColor")
-                       : CreateBrushFromStyleInt(*style_map, "textColor");
-        if (fg) toggle.Foreground(fg);
+      if (!toolTipStr.empty()) {
+        ToolTipService::SetToolTip(toggle,
+            winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
       }
+      if (style_map) ApplyItemStyling(toggle, *style_map, disabled);
       collection.Append(toggle);
+
+    } else if (type == "radio") {
+      // Render radio items as ToggleMenuFlyoutItem instead of
+      // RadioMenuFlyoutItem. RadioMenuFlyoutItem crashes in
+      // DesktopWindowXamlSource contexts due to internal visual-tree
+      // traversal in its radio-group management code. The mutual-
+      // exclusion logic is handled on the Dart side already (the
+      // onClick callback updates checked state and calls setContextMenu).
+      ToggleMenuFlyoutItem radio;
+      radio.Text(winrt::hstring(Utf8ToWide(label)));
+      radio.IsEnabled(!disabled);
+      auto checked_it = item_map->find(flutter::EncodableValue("checked"));
+      if (checked_it != item_map->end()) {
+        const auto* b = std::get_if<bool>(&checked_it->second);
+        radio.IsChecked(b && *b);
+      }
+      radio.Click([channel, id, cancelCloseForToggleClick](auto&&, auto&&) {
+        if (cancelCloseForToggleClick) *cancelCloseForToggleClick = true;
+        flutter::EncodableMap args;
+        args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
+        InvokeOnPlatformThread(channel, "onMenuItemClick",
+                               flutter::EncodableValue(std::move(args)));
+      });
+      bool hasIcon = false;
+      if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) {
+          radio.Icon(iconElem);
+          hasIcon = true;
+        }
+      }
+      if (!hasIcon && compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
+        radio.Style(compact_styles->toggleMenuFlyoutItemStyle);
+      }
+      if (!acceleratorText.empty()) {
+        radio.KeyboardAcceleratorTextOverride(
+            winrt::hstring(Utf8ToWide(acceleratorText)));
+      }
+      if (!toolTipStr.empty()) {
+        ToolTipService::SetToolTip(radio,
+            winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
+      }
+      if (style_map) ApplyItemStyling(radio, *style_map, disabled);
+      collection.Append(radio);
+
     } else {
       MenuFlyoutItem item;
       item.Text(winrt::hstring(Utf8ToWide(label)));
@@ -843,22 +1065,29 @@ void AddMenuItemsToCollection(
       item.Click([channel, id](auto&&, auto&&) {
         flutter::EncodableMap args;
         args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
-        channel->InvokeMethod("onMenuItemClick",
-                             std::make_unique<flutter::EncodableValue>(args));
+        InvokeOnPlatformThread(channel, "onMenuItemClick",
+                               flutter::EncodableValue(std::move(args)));
       });
-      if (compact_styles && compact_styles->menuFlyoutItemStyle) {
+      bool hasIcon = false;
+      if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) {
+          item.Icon(iconElem);
+          hasIcon = true;
+        }
+      }
+      if (!hasIcon && compact_styles && compact_styles->menuFlyoutItemStyle) {
         item.Style(compact_styles->menuFlyoutItemStyle);
       }
-      if (style_map) {
-        double fs = GetStyleDouble(*style_map, "fontSize");
-        if (fs > 0) item.FontSize(fs);
-        double itemH = GetStyleDouble(*style_map, "itemHeight");
-        if (itemH > 0) item.MinHeight(itemH);
-        Brush fg = disabled && GetStyleInt(*style_map, "disabledTextColor") != 0
-                       ? CreateBrushFromStyleInt(*style_map, "disabledTextColor")
-                       : CreateBrushFromStyleInt(*style_map, "textColor");
-        if (fg) item.Foreground(fg);
+      if (!acceleratorText.empty()) {
+        item.KeyboardAcceleratorTextOverride(
+            winrt::hstring(Utf8ToWide(acceleratorText)));
       }
+      if (!toolTipStr.empty()) {
+        ToolTipService::SetToolTip(item,
+            winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
+      }
+      if (style_map) ApplyItemStyling(item, *style_map, disabled);
       collection.Append(item);
     }
   }
@@ -874,11 +1103,19 @@ void ShowMenuOnWinUIThread(
   auto& state = GetWinUIState();
   if (!state.queue) return;
 
+  bool expected = false;
+  if (!state.menu_showing.compare_exchange_strong(expected, true)) {
+    return;
+  }
+
   flutter::EncodableMap menu_copy = menu_json;
   flutter::EncodableMap style_copy = style_json;
   state.queue.TryEnqueue(DispatcherQueuePriority::Normal,
                          [menu_copy, style_copy, channel, pos_x, pos_y,
                           placement]() {
+    auto prevDpiContext = SetThreadDpiAwarenessContext(
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
     POINT pt;
     if (pos_x.has_value() && pos_y.has_value()) {
       pt.x = static_cast<LONG>(*pos_x);
@@ -891,13 +1128,19 @@ void ShowMenuOnWinUIThread(
         WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"Static", L"",
         WS_POPUP, pt.x, pt.y, 1, 1,
         nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
-    if (!hwnd) return;
+
+    if (prevDpiContext) {
+      SetThreadDpiAwarenessContext(prevDpiContext);
+    }
+
+    if (!hwnd) {
+      GetWinUIState().menu_showing.store(false);
+      return;
+    }
 
     ShowWindow(hwnd, SW_SHOWNOACTIVATE);
 
-#ifndef NDEBUG
-    OutputDebugStringW(L"TrayWinUI: host window created\n");
-#endif
+    DebugLog(L"TrayWinUI: host window created\n");
 
     try {
       // Use shared_ptr to keep XAML objects alive until flyout is closed.
@@ -909,9 +1152,7 @@ void ShowMenuOnWinUIThread(
       auto parentId = winrt::Microsoft::UI::GetWindowIdFromWindow(hwnd);
       holder->xamlSource.Initialize(parentId);
 
-#ifndef NDEBUG
-      OutputDebugStringW(L"TrayWinUI: XAML island initialized\n");
-#endif
+      DebugLog(L"TrayWinUI: XAML island initialized\n");
 
       holder->canvas.Width(1);
       holder->canvas.Height(1);
@@ -969,25 +1210,26 @@ void ShowMenuOnWinUIThread(
         });
       }
 
-      holder->flyout.Closing([cancelCloseForToggle](auto&&, auto&& args) {
+      holder->flyout.Opening([channel](auto&&, auto&&) {
+        InvokeOnPlatformThread(channel, "onMenuOpening");
+      });
+      holder->flyout.Closing([cancelCloseForToggle, channel](auto&&, auto&& args) {
         if (*cancelCloseForToggle) {
           args.Cancel(true);
           *cancelCloseForToggle = false;
+          return;
         }
+        InvokeOnPlatformThread(channel, "onMenuClosing");
       });
-      holder->flyout.Closed([holder, hwnd](auto&&, auto&&) {
-        try {
-          PostMessage(hwnd, WM_CLOSE, 0, 0);
-        } catch (...) {
-          PostMessage(hwnd, WM_CLOSE, 0, 0);
-        }
-        // holder released when handler returns, tearing down XAML objects
+      holder->flyout.Closed([holder, hwnd, channel](auto&&, auto&&) {
+        InvokeOnPlatformThread(channel, "onMenuClosed");
+        PostMessage(hwnd, WM_CLOSE, 0, 0);
       });
 
-      // Subclass host window to close flyout on click outside (WM_ACTIVATE WA_INACTIVE).
+      // Subclass host window to close flyout when another app gets focus (WM_ACTIVATEAPP).
       WNDPROC oldProc =
           reinterpret_cast<WNDPROC>(GetWindowLongPtr(hwnd, GWLP_WNDPROC));
-      auto* hostData = new MenuHostData{oldProc, holder.get()};
+      auto* hostData = new MenuHostData{oldProc, holder};
       SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(hostData));
       SetWindowLongPtr(hwnd, GWLP_WNDPROC,
                       reinterpret_cast<LONG_PTR>(&MenuHostWndProc));
@@ -1005,20 +1247,25 @@ void ShowMenuOnWinUIThread(
           winrt::Windows::Foundation::Point pos(0.0f, 0.0f);
           opts.Position(pos);
 
-#ifndef NDEBUG
-          OutputDebugStringW(L"TrayWinUI: calling ShowAt\n");
-#endif
+          DebugLog(L"TrayWinUI: calling ShowAt\n");
 
           holder->flyout.ShowAt(holder->canvas, opts);
+        } catch (const winrt::hresult_error& e) {
+          DebugLog(L"ShowAt failed", e.code());
+          DestroyWindow(hwnd);
         } catch (...) {
+          DebugLog(L"TrayWinUI: ShowAt failed (unknown exception)\n");
           DestroyWindow(hwnd);
         }
       });
 
+    } catch (const winrt::hresult_error& e) {
+      DebugLog(L"XAML setup failed", e.code());
+      GetWinUIState().menu_showing.store(false);
+      DestroyWindow(hwnd);
     } catch (...) {
-#ifndef NDEBUG
-      OutputDebugStringW(L"TrayWinUI: XAML setup or ShowAt failed\n");
-#endif
+      DebugLog(L"TrayWinUI: XAML setup failed (unknown exception)\n");
+      GetWinUIState().menu_showing.store(false);
       DestroyWindow(hwnd);
     }
   });
@@ -1026,14 +1273,58 @@ void ShowMenuOnWinUIThread(
 
 }  // namespace
 
+void InitPlatformCallback() {
+  static bool registered = false;
+  if (!registered) {
+    WNDCLASSW wc = {};
+    wc.lpfnWndProc = PlatformCallbackProc;
+    wc.hInstance = GetModuleHandle(nullptr);
+    wc.lpszClassName = L"TrayWinUICallbackWnd";
+    RegisterClassW(&wc);
+    registered = true;
+  }
+  g_platformCallbackHwnd = CreateWindowExW(
+      0, L"TrayWinUICallbackWnd", L"", 0,
+      0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandle(nullptr), nullptr);
+}
+
+void DestroyPlatformCallback() {
+  if (g_platformCallbackHwnd) {
+    DestroyWindow(g_platformCallbackHwnd);
+    g_platformCallbackHwnd = nullptr;
+  }
+}
+
 void TriggerWinUIPreInitialization() {
   auto& state = GetWinUIState();
   std::lock_guard lock(state.mutex);
-  if (state.initialized || state.init_in_progress) return;
-  state.init_in_progress = true;
+  if (state.initialized || state.init_in_progress || state.init_failed) return;
   std::thread([]() {
     EnsureWinUIInitialized();
   }).detach();
+}
+
+void ShutdownWinUI() {
+  auto& state = GetWinUIState();
+  std::lock_guard lock(state.mutex);
+  if (!state.initialized) return;
+  try {
+    if (state.xamlManager) {
+      state.xamlManager.Close();
+      state.xamlManager = nullptr;
+    }
+    if (state.controller) {
+      state.controller.ShutdownQueueAsync();
+      state.controller = nullptr;
+    }
+    state.queue = nullptr;
+  } catch (const winrt::hresult_error& e) {
+    DebugLog(L"ShutdownWinUI error", e.code());
+  }
+  state.initialized = false;
+  try {
+    MddBootstrapShutdown();
+  } catch (...) {}
 }
 
 bool ShowWinUIContextMenu(
@@ -1045,18 +1336,15 @@ bool ShowWinUIContextMenu(
     std::optional<std::string> placement) {
   if (!channel) return false;
   try {
-    auto& state = GetWinUIState();
-    if (!state.initialized) {
-      std::unique_lock lock(state.mutex);
-      state.cv.wait_for(lock, std::chrono::seconds(8), [&state] {
-        return state.initialized || !state.init_in_progress;
-      });
-    }
     if (!EnsureWinUIInitialized()) return false;
     ShowMenuOnWinUIThread(menu_json, style_json, channel, pos_x, pos_y,
                           placement);
     return true;
+  } catch (const winrt::hresult_error& e) {
+    DebugLog(L"ShowWinUIContextMenu error", e.code());
+    return false;
   } catch (...) {
+    DebugLog(L"ShowWinUIContextMenu: unknown exception\n");
     return false;
   }
 }
@@ -1067,7 +1355,11 @@ bool ShowWinUIContextMenu(
 
 namespace tray_manager_winui {
 
+void InitPlatformCallback() {}
+void DestroyPlatformCallback() {}
 void TriggerWinUIPreInitialization() {}
+
+void ShutdownWinUI() {}
 
 bool ShowWinUIContextMenu(
     const flutter::EncodableMap&,

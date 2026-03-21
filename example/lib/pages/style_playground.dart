@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bot_toast/bot_toast.dart';
-import 'package:menu_base/menu_base.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:tray_manager_winui/tray_manager_winui.dart';
 
 /// Preset colors for quick selection (no external color picker dependency).
@@ -30,11 +30,15 @@ class StylePlaygroundPage extends StatefulWidget {
     required this.menu,
     required this.initialStyle,
     required this.onStyleChanged,
+    this.eventLog = const [],
+    this.onClearLog,
   });
 
   final Menu menu;
   final WinUIContextMenuStyle? initialStyle;
   final ValueChanged<WinUIContextMenuStyle?> onStyleChanged;
+  final List<String> eventLog;
+  final VoidCallback? onClearLog;
 
   @override
   State<StylePlaygroundPage> createState() => _StylePlaygroundPageState();
@@ -64,6 +68,8 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
   Color? _borderColor;
   double? _borderThickness;
   double? _shadowElevation;
+  double? _maxHeight;
+  bool? _enableOpenCloseAnimations;
   bool _compactItemLayout = true;
 
   static const _fontFamilies = [
@@ -115,6 +121,8 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
         _borderColor = null;
         _borderThickness = null;
         _shadowElevation = null;
+        _maxHeight = null;
+        _enableOpenCloseAnimations = null;
         _compactItemLayout = true;
       });
     } else {
@@ -142,6 +150,8 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
         _borderColor = style.borderColor;
         _borderThickness = style.borderThickness;
         _shadowElevation = style.shadowElevation;
+        _maxHeight = style.maxHeight;
+        _enableOpenCloseAnimations = style.enableOpenCloseAnimations;
         _compactItemLayout = style.compactItemLayout;
       });
     }
@@ -179,6 +189,8 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
       borderColor: _borderColor,
       borderThickness: _borderThickness,
       shadowElevation: _shadowElevation,
+      maxHeight: _maxHeight,
+      enableOpenCloseAnimations: _enableOpenCloseAnimations,
       compactItemLayout: _compactItemLayout,
     );
   }
@@ -277,6 +289,13 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
     }
     if (_shadowElevation != null) {
       sb.writeln('  shadowElevation: ${_shadowElevation!.toStringAsFixed(1)},');
+    }
+    if (_maxHeight != null) {
+      sb.writeln('  maxHeight: ${_maxHeight!.toStringAsFixed(1)},');
+    }
+    if (_enableOpenCloseAnimations != null) {
+      sb.writeln(
+          '  enableOpenCloseAnimations: $_enableOpenCloseAnimations,');
     }
     if (!_compactItemLayout) {
       sb.writeln('  compactItemLayout: false,');
@@ -469,10 +488,18 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
             setState(() => _itemHeight = v);
             _notifyStyleChanged();
           }),
+          _buildDoubleSlider('Max height', _maxHeight, 100, 800, (v) {
+            setState(() => _maxHeight = v);
+            _notifyStyleChanged();
+          }),
+          _buildAnimationsRow(),
           _buildCompactItemLayoutRow(),
           const SizedBox(height: 24),
           _buildSectionTitle('Theme'),
           _buildThemeModeRow(),
+          const SizedBox(height: 24),
+          _buildSectionTitle('Lifecycle Events'),
+          _buildEventsLog(),
           const SizedBox(height: 24),
           _buildCopyButton(),
         ],
@@ -848,6 +875,100 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimationsRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          const SizedBox(width: 140, child: Text('Animations')),
+          Expanded(
+            child: SwitchListTile(
+              value: _enableOpenCloseAnimations ?? true,
+              onChanged: (v) {
+                setState(() => _enableOpenCloseAnimations = v);
+                _notifyStyleChanged();
+              },
+              title: const Text('Open/close animations'),
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventsLog() {
+    final log = widget.eventLog;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Right-click tray icon to see events',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+                if (log.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: widget.onClearLog,
+                    icon: const Icon(Icons.clear_all, size: 16),
+                    label: const Text('Clear'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (log.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text(
+                  'No events yet',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: (log.length.clamp(1, 10) * 28.0).clamp(28.0, 280.0),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                itemCount: log.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      log[index],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Consolas',
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );

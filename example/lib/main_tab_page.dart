@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -8,8 +9,6 @@ import 'package:tray_manager_winui/tray_manager_winui.dart';
 import 'package:tray_manager_winui_example/pages/home.dart';
 import 'package:tray_manager_winui_example/pages/style_playground.dart';
 
-/// Main tab container with tray listener and shared menu.
-/// Holds the Menu and passes it to StylePlaygroundPage for styling.
 class MainTabPage extends StatefulWidget {
   const MainTabPage({super.key});
 
@@ -20,6 +19,12 @@ class MainTabPage extends StatefulWidget {
 class _MainTabPageState extends State<MainTabPage> with TrayListener {
   Menu? _menu;
   WinUIContextMenuStyle? _currentStyle;
+  final List<String> _eventLog = [];
+  final List<StreamSubscription> _subs = [];
+
+  late final WinUIMenuItem _radioSmall;
+  late final WinUIMenuItem _radioMedium;
+  late final WinUIMenuItem _radioLarge;
 
   @override
   void initState() {
@@ -32,45 +37,132 @@ class _MainTabPageState extends State<MainTabPage> with TrayListener {
     }
   }
 
+  void _onRadioClick(MenuItem clicked) {
+    for (final item in [_radioSmall, _radioMedium, _radioLarge]) {
+      item.checked = (item == clicked);
+    }
+    _applyMenuStyle();
+    if (kDebugMode) {
+      print('Radio selected: ${clicked.label}');
+    }
+  }
+
   void _setupWinUIMenu() {
+    _radioSmall = WinUIMenuItem.radio(
+      label: 'Small',
+      radioGroup: 'viewSize',
+      onClick: _onRadioClick,
+    );
+    _radioMedium = WinUIMenuItem.radio(
+      label: 'Medium',
+      radioGroup: 'viewSize',
+      checked: true,
+      onClick: _onRadioClick,
+    );
+    _radioLarge = WinUIMenuItem.radio(
+      label: 'Large',
+      radioGroup: 'viewSize',
+      onClick: _onRadioClick,
+    );
+
     _menu = Menu(
       items: [
-        MenuItem(label: 'Look Up "LeanFlutter"'),
-        MenuItem(label: 'Search with Google'),
+        WinUIMenuItem(
+          label: 'Cut',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.cut),
+          acceleratorText: 'Ctrl+X',
+          toolTip: 'Cut selection to clipboard',
+          onClick: (_) => BotToast.showText(text: 'Cut'),
+        ),
+        WinUIMenuItem(
+          label: 'Copy',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.copy),
+          acceleratorText: 'Ctrl+C',
+          toolTip: 'Copy selection to clipboard',
+          onClick: (_) => BotToast.showText(text: 'Copy'),
+        ),
+        WinUIMenuItem(
+          label: 'Paste',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.paste),
+          acceleratorText: 'Ctrl+V',
+          disabled: true,
+          toolTip: 'Paste from clipboard',
+        ),
         MenuItem.separator(),
-        MenuItem(label: 'Cut'),
-        MenuItem(label: 'Copy'),
-        MenuItem(label: 'Paste', disabled: true),
-        MenuItem.separator(),
-        MenuItem.checkbox(
-          label: 'Option A',
+        WinUIMenuItem.checkbox(
+          label: 'Dark Mode',
           checked: false,
+          winuiIcon: const WinUIIcon.glyph(0xE793),
           onClick: (item) {
             item.checked = !(item.checked == true);
-            if (kDebugMode) {
-              print('Checkbox toggled: ${item.checked}');
-            }
+            if (kDebugMode) print('Dark Mode: ${item.checked}');
           },
         ),
-        MenuItem.submenu(
-          label: 'More',
+        WinUIMenuItem.checkbox(
+          label: 'Notifications',
+          checked: true,
+          winuiIcon: const WinUIIcon.glyph(0xEA8F),
+          onClick: (item) {
+            item.checked = !(item.checked == true);
+          },
+        ),
+        MenuItem.separator(),
+        WinUIMenuItem.submenu(
+          label: 'View',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.zoom),
           submenu: Menu(
             items: [
-              MenuItem(label: 'Submenu 1'),
-              MenuItem(label: 'Submenu 2', disabled: true),
+              _radioSmall,
+              _radioMedium,
+              _radioLarge,
+            ],
+          ),
+        ),
+        WinUIMenuItem.submenu(
+          label: 'More',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.more),
+          submenu: Menu(
+            items: [
+              WinUIMenuItem(
+                label: 'Settings',
+                winuiIcon: WinUIIcon.symbol(WinUISymbol.setting),
+                acceleratorText: 'Ctrl+,',
+                onClick: (_) => BotToast.showText(text: 'Settings'),
+              ),
+              WinUIMenuItem(
+                label: 'Refresh',
+                winuiIcon: WinUIIcon.symbol(WinUISymbol.refresh),
+                acceleratorText: 'F5',
+                onClick: (_) => BotToast.showText(text: 'Refresh'),
+              ),
+              MenuItem.separator(),
+              WinUIMenuItem(
+                label: 'Help',
+                winuiIcon: WinUIIcon.symbol(WinUISymbol.help),
+                toolTip: 'Open help documentation',
+                onClick: (_) => BotToast.showText(text: 'Help'),
+              ),
             ],
           ),
         ),
         MenuItem.separator(),
-        MenuItem(
+        WinUIMenuItem(
           label: 'About',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.contact),
           onClick: (_) {
-            BotToast.showText(text: 'tray_manager_winui – WinUI 3 Context Menu');
+            BotToast.showText(
+                text: 'tray_manager_winui – WinUI 3 Context Menu');
           },
         ),
-        MenuItem(label: 'Exit', onClick: (_) => exit(0)),
+        WinUIMenuItem(
+          label: 'Exit',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.cancel),
+          acceleratorText: 'Alt+F4',
+          onClick: (_) => exit(0),
+        ),
       ],
     );
+
     _currentStyle = const WinUIContextMenuStyle(
       backgroundColor: Color(0xFF2D2D2D),
       textColor: Color(0xFFFFFFFF),
@@ -79,7 +171,26 @@ class _MainTabPageState extends State<MainTabPage> with TrayListener {
       themeMode: WinUIThemeMode.dark,
     );
     _applyMenuStyle();
-    TrayManagerWinUI.instance.onMenuItemClick.listen(_handleMenuItemClick);
+
+    final winui = TrayManagerWinUI.instance;
+    _subs.add(winui.onMenuItemClick.listen(_handleMenuItemClick));
+    _subs.add(winui.onMenuOpening.listen((_) => _addEvent('Opening')));
+    _subs.add(winui.onMenuClosing.listen((_) => _addEvent('Closing')));
+    _subs.add(winui.onMenuClosed.listen((_) => _addEvent('Closed')));
+  }
+
+  void _addEvent(String name) {
+    final now = DateTime.now();
+    final ts =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    setState(() {
+      _eventLog.insert(0, '$ts  $name');
+      if (_eventLog.length > 20) _eventLog.removeLast();
+    });
+  }
+
+  void clearEventLog() {
+    setState(() => _eventLog.clear());
   }
 
   void _applyMenuStyle() {
@@ -107,15 +218,16 @@ class _MainTabPageState extends State<MainTabPage> with TrayListener {
 
   @override
   void dispose() {
+    for (final sub in _subs) {
+      sub.cancel();
+    }
     trayManager.removeListener(this);
     super.dispose();
   }
 
   @override
   void onTrayIconRightMouseDown() {
-    if (kDebugMode) {
-      print('onTrayIconRightMouseDown');
-    }
+    if (kDebugMode) print('onTrayIconRightMouseDown');
     TrayManagerWinUI.instance.showContextMenu();
   }
 
@@ -157,6 +269,8 @@ class _MainTabPageState extends State<MainTabPage> with TrayListener {
               menu: _menu!,
               initialStyle: _currentStyle,
               onStyleChanged: updateStyle,
+              eventLog: _eventLog,
+              onClearLog: clearEventLog,
             ),
           ],
         ),

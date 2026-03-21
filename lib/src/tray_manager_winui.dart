@@ -10,6 +10,9 @@ import 'winui_flyout_placement.dart';
 
 const _methodChannelName = 'tray_manager_winui';
 const _methodOnMenuItemClick = 'onMenuItemClick';
+const _methodOnMenuOpening = 'onMenuOpening';
+const _methodOnMenuClosing = 'onMenuClosing';
+const _methodOnMenuClosed = 'onMenuClosed';
 
 /// Singleton for WinUI 3 context menu display.
 ///
@@ -31,9 +34,24 @@ class TrayManagerWinUI {
   WinUIContextMenuStyle? _style;
   final StreamController<MenuItem> _menuItemClickController =
       StreamController<MenuItem>.broadcast();
+  final StreamController<void> _menuOpeningController =
+      StreamController<void>.broadcast();
+  final StreamController<void> _menuClosingController =
+      StreamController<void>.broadcast();
+  final StreamController<void> _menuClosedController =
+      StreamController<void>.broadcast();
 
   /// Stream of menu item clicks when using the WinUI context menu.
   Stream<MenuItem> get onMenuItemClick => _menuItemClickController.stream;
+
+  /// Fires when the menu flyout is about to open.
+  Stream<void> get onMenuOpening => _menuOpeningController.stream;
+
+  /// Fires when the menu flyout is about to close.
+  Stream<void> get onMenuClosing => _menuClosingController.stream;
+
+  /// Fires when the menu flyout has fully closed.
+  Stream<void> get onMenuClosed => _menuClosedController.stream;
 
   /// Sets the context menu definition (same format as tray_manager).
   ///
@@ -96,19 +114,30 @@ class TrayManagerWinUI {
   }
 
   Future<dynamic> _methodCallHandler(MethodCall call) async {
-    if (call.method == _methodOnMenuItemClick) {
-      final int id = call.arguments['id'] as int;
-      final MenuItem? menuItem = _menu?.getMenuItemById(id);
-      if (menuItem != null) {
-        final bool? oldChecked = menuItem.checked;
-        menuItem.onClick?.call(menuItem);
-        _menuItemClickController.add(menuItem);
+    switch (call.method) {
+      case _methodOnMenuItemClick:
+        final args = call.arguments;
+        if (args is! Map) return;
+        final id = args['id'];
+        if (id is! int) return;
 
-        final bool? newChecked = menuItem.checked;
-        if (oldChecked != newChecked) {
-          await setContextMenu(_menu!, style: _style);
+        final MenuItem? menuItem = _menu?.getMenuItemById(id);
+        if (menuItem != null) {
+          final bool? oldChecked = menuItem.checked;
+          menuItem.onClick?.call(menuItem);
+          _menuItemClickController.add(menuItem);
+
+          final bool? newChecked = menuItem.checked;
+          if (oldChecked != newChecked) {
+            await setContextMenu(_menu!, style: _style);
+          }
         }
-      }
+      case _methodOnMenuOpening:
+        _menuOpeningController.add(null);
+      case _methodOnMenuClosing:
+        _menuClosingController.add(null);
+      case _methodOnMenuClosed:
+        _menuClosedController.add(null);
     }
   }
 }

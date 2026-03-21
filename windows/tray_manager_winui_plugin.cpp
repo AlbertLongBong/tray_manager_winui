@@ -57,9 +57,14 @@ void TrayManagerWinuiPlugin::RegisterWithRegistrar(
 
 TrayManagerWinuiPlugin::TrayManagerWinuiPlugin(
     flutter::PluginRegistrarWindows* registrar)
-    : registrar_(registrar) {}
+    : registrar_(registrar) {
+  InitPlatformCallback();
+}
 
-TrayManagerWinuiPlugin::~TrayManagerWinuiPlugin() {}
+TrayManagerWinuiPlugin::~TrayManagerWinuiPlugin() {
+  DestroyPlatformCallback();
+  ShutdownWinUI();
+}
 
 void TrayManagerWinuiPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,

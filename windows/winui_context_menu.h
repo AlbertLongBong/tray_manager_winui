@@ -30,9 +30,21 @@ bool ShowWinUIContextMenu(
     std::optional<double> pos_y = std::nullopt,
     std::optional<std::string> placement = std::nullopt);
 
+/// Creates a message-only window on the platform thread for safe
+/// InvokeMethod callbacks from the WinUI DispatcherQueue thread.
+/// Must be called during plugin registration (platform thread).
+void InitPlatformCallback();
+
+/// Destroys the callback window. Call from plugin destructor.
+void DestroyPlatformCallback();
+
 /// Starts WinUI initialization in a background thread. Call from setContextMenu
 /// to avoid blocking on first showContextMenu.
 void TriggerWinUIPreInitialization();
+
+/// Shuts down WinUI infrastructure. Call from plugin destructor for clean
+/// release of DispatcherQueueController and WindowsXamlManager.
+void ShutdownWinUI();
 
 }  // namespace tray_manager_winui
 
