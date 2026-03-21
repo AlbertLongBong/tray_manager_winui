@@ -1,8 +1,12 @@
 # tray_manager_winui
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Status: In Development](https://img.shields.io/badge/Status-In--Development-red.svg)
 [![Flutter](https://img.shields.io/badge/Flutter-3.3+-blue.svg)](https://flutter.dev)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://docs.flutter.dev/platform-integration/windows)
+
+> [!WARNING]
+> **Early Alpha State:** This library is currently in development. Features may be unstable, and breaking changes can occur at any time. **Use at your own risk.**
 
 WinUI 3 context menu extension for [tray_manager](https://github.com/leanflutter/tray_manager) – modern Fluent Design on Windows.
 
@@ -64,7 +68,6 @@ Instead of the classic Win32 menu (`CreatePopupMenu`/`TrackPopupMenu`), this plu
 ```yaml
 dependencies:
   tray_manager: ^0.5.2
-  tray_manager_winui: ^0.1.0
   menu_base: ^0.1.0   # comes via tray_manager, may need to be explicit
 ```
 
