@@ -115,7 +115,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
   void _setupWinUIMenu() {
     _menu = Menu(
       items: [
-        MenuItem(label: 'Open', onClick: (_) => /* ... */),
+        MenuItem(label: 'Open', onClick: (_) { /* ... */ }),
         MenuItem.separator(),
         MenuItem.checkbox(
           label: 'Option A',
@@ -125,7 +125,7 @@ class _MyAppState extends State<MyApp> with TrayListener {
         MenuItem.submenu(
           label: 'More',
           submenu: Menu(items: [
-            MenuItem(label: 'Submenu Item', onClick: (_) => /* ... */),
+            MenuItem(label: 'Submenu Item', onClick: (_) { /* ... */ }),
           ]),
         ),
         MenuItem.separator(),
@@ -166,6 +166,27 @@ class _MyAppState extends State<MyApp> with TrayListener {
 | `setContextMenu(Menu menu, {WinUIContextMenuStyle? style})` | Set menu definition. Optional `style` for custom appearance. |
 | `showContextMenu({double? x, double? y, WinUIFlyoutPlacement? placement})` | Show menu. Without `x`/`y` at cursor position; with both at (x,y) in screen pixels. `placement` controls position relative to anchor (e.g. `WinUIFlyoutPlacement.right` for left-handed users). Returns `true` if WinUI active, otherwise `false`. |
 | `onMenuItemClick` | `Stream<MenuItem>` – Clicks on menu items |
+
+### `WinUIFlyoutPlacement` values
+
+Maps to WinUI [`FlyoutPlacementMode`](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.primitives.flyoutplacementmode).
+
+| Value | Description |
+|-------|-------------|
+| `top` | Menu above the anchor |
+| `bottom` | Menu below the anchor |
+| `left` | Menu to the left of the anchor |
+| `right` | Menu to the right of the anchor |
+| `full` | Menu centered on screen |
+| `auto` | Placement determined automatically by WinUI (default) |
+| `topEdgeAlignedLeft` | Above anchor, left edge aligned |
+| `topEdgeAlignedRight` | Above anchor, right edge aligned |
+| `bottomEdgeAlignedLeft` | Below anchor, left edge aligned |
+| `bottomEdgeAlignedRight` | Below anchor, right edge aligned |
+| `leftEdgeAlignedTop` | Left of anchor, top edge aligned |
+| `leftEdgeAlignedBottom` | Left of anchor, bottom edge aligned |
+| `rightEdgeAlignedTop` | Right of anchor, top edge aligned |
+| `rightEdgeAlignedBottom` | Right of anchor, bottom edge aligned |
 
 ---
 

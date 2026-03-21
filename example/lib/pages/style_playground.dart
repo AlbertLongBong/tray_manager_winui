@@ -617,7 +617,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
           const SizedBox(width: 140, child: Text('Font family')),
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: _fontFamilies.contains(_fontFamily) ? _fontFamily : null,
+              initialValue: _fontFamilies.contains(_fontFamily) ? _fontFamily : null,
               decoration: const InputDecoration(
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -664,7 +664,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
           const SizedBox(width: 140, child: Text('Font weight')),
           Expanded(
             child: DropdownButtonFormField<FontWeight?>(
-              value: _fontWeight,
+              initialValue: _fontWeight,
               decoration: const InputDecoration(
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -698,7 +698,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
           const SizedBox(width: 140, child: Text('Font style')),
           Expanded(
             child: DropdownButtonFormField<FontStyle?>(
-              value: _fontStyle,
+              initialValue: _fontStyle,
               decoration: const InputDecoration(
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -784,7 +784,7 @@ class _StylePlaygroundPageState extends State<StylePlaygroundPage> {
     return Expanded(
       child: TextFormField(
         key: ValueKey('$hint-$value'),
-        initialValue: value != null ? value.toInt().toString() : null,
+        initialValue: value?.toInt().toString(),
         decoration: InputDecoration(
           hintText: hint,
           isDense: true,

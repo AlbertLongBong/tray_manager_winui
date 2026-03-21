@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:menu_base/menu_base.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:tray_manager_winui/tray_manager_winui.dart';
 import 'package:tray_manager_winui_example/pages/home.dart';

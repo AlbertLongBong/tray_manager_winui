@@ -65,7 +65,7 @@ class WinUIContextMenuStyle {
   /// Text color for disabled menu items.
   final Color? disabledTextColor;
 
-  /// Background color when hovering over menu items (Phase 3).
+  /// Background color when hovering over menu items.
   final Color? hoverBackgroundColor;
 
   /// Background color when a submenu is open (parent item selected state).

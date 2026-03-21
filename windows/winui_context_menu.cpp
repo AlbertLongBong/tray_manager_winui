@@ -404,8 +404,14 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
     xaml << L"<Setter Property='FontFamily' Value='" << wfont << L"'/>";
   }
 
-  double cornerRadius = GetStyleDouble(style, "cornerRadius");
-  if (cornerRadius >= 0) {
+  int64_t fontWeight = GetStyleInt(style, "fontWeight");
+  if (fontWeight > 0) {
+    xaml << L"<Setter Property='FontWeight' Value='" << fontWeight << L"'/>";
+  }
+
+  auto cr_it = style.find(flutter::EncodableValue("cornerRadius"));
+  if (cr_it != style.end()) {
+    double cornerRadius = GetStyleDouble(style, "cornerRadius");
     xaml << L"<Setter Property='CornerRadius' Value='" << cornerRadius << L"'/>";
   }
 
