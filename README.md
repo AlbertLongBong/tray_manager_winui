@@ -14,6 +14,8 @@ WinUI 3 context menu extension for [tray_manager](https://github.com/leanflutter
 
 ![WinUI Context Menu – Light Theme](screenshots/context_menu_light_default.png)
 
+![WinUI Context Menu – Full Featured](screenshots/context_menu_full_featured.png)
+
 Instead of the classic Win32 menu (`CreatePopupMenu`/`TrackPopupMenu`), this plugin displays a WinUI 3 `MenuFlyout`. It is **not a replacement** for tray_manager, but an **extension**: The tray icon infrastructure stays with tray_manager; only the menu rendering logic is swapped with an optional WinUI menu.
 
 ---
@@ -224,6 +226,9 @@ The optional `style` parameter in `setContextMenu()` lets you customize the WinU
 
 ![Custom Styling 1](screenshots/context_menu_rounded_colored.png)
 ![Custom Styling 2](screenshots/context_menu_rounded_colored_2.png)
+![Custom Styling – Minimal Dark](screenshots/context_menu_minimal_dark.png)
+![Custom Styling – Green Theme](screenshots/context_menu_custom_green.png)
+![Custom Styling – Orange with Submenu](screenshots/context_menu_custom_orange_submenu.png)
 
 | Property | Type | Description |
 |----------|------|-------------|
