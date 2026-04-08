@@ -986,16 +986,11 @@ void AddMenuItemsToCollection(
           }
         }
       }
-      bool hasIcon = false;
-      if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
-        if (iconElem) {
-          sub.Icon(iconElem);
-          hasIcon = true;
-        }
-      }
-      if (!hasIcon && compact_styles && compact_styles->menuFlyoutSubItemStyle) {
+      if (compact_styles && compact_styles->menuFlyoutSubItemStyle) {
         sub.Style(compact_styles->menuFlyoutSubItemStyle);
+      } else if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) sub.Icon(iconElem);
       }
       if (!toolTipStr.empty()) {
         ToolTipService::SetToolTip(sub,
@@ -1020,16 +1015,11 @@ void AddMenuItemsToCollection(
         InvokeOnPlatformThread(channel, "onMenuItemClick",
                                flutter::EncodableValue(std::move(args)));
       });
-      bool hasIcon = false;
-      if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
-        if (iconElem) {
-          toggle.Icon(iconElem);
-          hasIcon = true;
-        }
-      }
-      if (!hasIcon && compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
+      if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
         toggle.Style(compact_styles->toggleMenuFlyoutItemStyle);
+      } else if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) toggle.Icon(iconElem);
       }
       if (!toolTipStr.empty()) {
         ToolTipService::SetToolTip(toggle,
@@ -1060,16 +1050,11 @@ void AddMenuItemsToCollection(
         InvokeOnPlatformThread(channel, "onMenuItemClick",
                                flutter::EncodableValue(std::move(args)));
       });
-      bool hasIcon = false;
-      if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
-        if (iconElem) {
-          radio.Icon(iconElem);
-          hasIcon = true;
-        }
-      }
-      if (!hasIcon && compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
+      if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
         radio.Style(compact_styles->toggleMenuFlyoutItemStyle);
+      } else if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) radio.Icon(iconElem);
       }
       if (!acceleratorText.empty()) {
         radio.KeyboardAcceleratorTextOverride(
@@ -1092,16 +1077,11 @@ void AddMenuItemsToCollection(
         InvokeOnPlatformThread(channel, "onMenuItemClick",
                                flutter::EncodableValue(std::move(args)));
       });
-      bool hasIcon = false;
-      if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
-        if (iconElem) {
-          item.Icon(iconElem);
-          hasIcon = true;
-        }
-      }
-      if (!hasIcon && compact_styles && compact_styles->menuFlyoutItemStyle) {
+      if (compact_styles && compact_styles->menuFlyoutItemStyle) {
         item.Style(compact_styles->menuFlyoutItemStyle);
+      } else if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        if (iconElem) item.Icon(iconElem);
       }
       if (!acceleratorText.empty()) {
         item.KeyboardAcceleratorTextOverride(

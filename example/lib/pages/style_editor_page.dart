@@ -773,7 +773,7 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
             _pushStyle();
           },
           title: const Text('Compact layout'),
-          subtitle: const Text('Remove icon column for items without icon'),
+          subtitle: const Text('Hide all icons for a denser menu'),
           contentPadding: EdgeInsets.zero,
           dense: true,
         ),

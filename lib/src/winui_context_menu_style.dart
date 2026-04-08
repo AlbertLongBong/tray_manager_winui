@@ -104,8 +104,9 @@ class WinUIContextMenuStyle {
   /// Shadow elevation in logical pixels. 0 = shadow off, null = WinUI default.
   final double? shadowElevation;
 
-  /// When true (default), menu items use a compact layout without icon placeholder
-  /// space. Use false if you plan to add icons (Phase 2) for consistent alignment.
+  /// When true (default), all menu items use a compact layout without icons.
+  /// Icons are stripped and the icon column is removed for a denser appearance.
+  /// Set to false to show icons and use the standard WinUI template with icon column.
   final bool compactItemLayout;
 
   /// Color of the indicator stripe for checkbox items. When set, a thin colored
