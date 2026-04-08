@@ -32,7 +32,6 @@
 
 #include <MddBootstrap.h>
 #include <sstream>
-#include <WindowsAppSDK-VersionInfo.h>
 
 using namespace winrt;
 using namespace winrt::Microsoft::UI::Xaml;
@@ -236,11 +235,10 @@ bool EnsureWinUIInitialized() {
     state.cv.notify_all();
   };
 
-  // Windows App SDK 1.5 - required for MenuFlyout.ShowAt fix (microsoft-ui-xaml#7989)
-  constexpr UINT32 c_majorMinor = 0x00010005;
+  // Windows App SDK 1.8 - required for MenuFlyout.ShowAt fix (microsoft-ui-xaml#7989)
+  constexpr UINT32 c_majorMinor = 0x00010008;
   constexpr PCWSTR c_versionTag = L"";
   PACKAGE_VERSION minVersion{};
-  minVersion.Version = WINDOWSAPPSDK_RUNTIME_VERSION_UINT64;
   HRESULT hr = MddBootstrapInitialize2(
       c_majorMinor, c_versionTag, minVersion,
       MddBootstrapInitializeOptions_OnNoMatch_ShowUI);

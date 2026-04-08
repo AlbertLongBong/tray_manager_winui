@@ -127,4 +127,4 @@ TrayManagerWinUI.instance.setContextMenu(_menu!, style: const WinUIContextMenuSt
 | Tray icon with `trayManager.setIcon()` | ☐ |
 | Menu with `TrayManagerWinUI.instance.setContextMenu()` (not trayManager) | ☐ |
 | `onTrayIconRightMouseDown()` → `TrayManagerWinUI.instance.showContextMenu()` | ☐ |
-| Windows App SDK installed (`winget install Microsoft.WindowsAppRuntime.1.5`) | ☐ |
+| Windows App SDK installed (`winget install Microsoft.WindowsAppRuntime.1.8`) | ☐ |
