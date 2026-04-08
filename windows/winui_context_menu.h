@@ -21,6 +21,7 @@ namespace tray_manager_winui {
 /// \param pos_x Optional screen X coordinate
 /// \param pos_y Optional screen Y coordinate
 /// \param placement Optional placement mode (top, bottom, left, right, etc.)
+/// \param exclusion_rect Optional rect the flyout should avoid ({x,y,width,height})
 /// \return true on success, false if WinUI unavailable
 bool ShowWinUIContextMenu(
     const flutter::EncodableMap& menu_json,
@@ -28,7 +29,8 @@ bool ShowWinUIContextMenu(
     flutter::MethodChannel<flutter::EncodableValue>* channel,
     std::optional<double> pos_x = std::nullopt,
     std::optional<double> pos_y = std::nullopt,
-    std::optional<std::string> placement = std::nullopt);
+    std::optional<std::string> placement = std::nullopt,
+    std::optional<flutter::EncodableMap> exclusion_rect = std::nullopt);
 
 /// Creates a message-only window on the platform thread for safe
 /// InvokeMethod callbacks from the WinUI DispatcherQueue thread.

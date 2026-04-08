@@ -31,9 +31,15 @@ class WinUIContextMenuStyle {
     this.itemHeight,
     this.shadowElevation,
     this.checkedIndicatorColor,
+    this.checkedForegroundColor,
+    this.checkedBackgroundColor,
+    this.iconColor,
+    this.keyboardAcceleratorColor,
     this.compactItemLayout = true,
     this.maxHeight,
     this.enableOpenCloseAnimations,
+    this.dismissOnPointerMoveAway = false,
+    this.backdropType,
   })  : assert(fontSize == null || fontSize > 0, 'fontSize must be positive'),
         assert(cornerRadius == null || cornerRadius >= 0,
             'cornerRadius must be non-negative'),
@@ -114,6 +120,19 @@ class WinUIContextMenuStyle {
   /// checkmark appears on the far right.
   final Color? checkedIndicatorColor;
 
+  /// Text color for checked toggle/radio items.
+  final Color? checkedForegroundColor;
+
+  /// Background color for checked toggle/radio items.
+  final Color? checkedBackgroundColor;
+
+  /// Foreground color applied to FontIcon elements in menu items.
+  final Color? iconColor;
+
+  /// Color for keyboard accelerator text displayed to the right of menu items
+  /// (e.g. "Ctrl+C"). Overrides the WinUI theme resource.
+  final Color? keyboardAcceleratorColor;
+
   /// Maximum height of the menu popup in logical pixels.
   /// Shows a scrollbar when content exceeds this height.
   final double? maxHeight;
@@ -121,6 +140,18 @@ class WinUIContextMenuStyle {
   /// Controls open/close animations. Null uses WinUI default (enabled).
   /// Set to false to disable animations.
   final bool? enableOpenCloseAnimations;
+
+  /// When true, the menu closes when the pointer moves away from it.
+  /// Uses [FlyoutShowMode.TransientWithDismissOnPointerMoveAway] instead of
+  /// [FlyoutShowMode.Transient]. Fixed in WinAppSDK 1.6+ (Issue #7987).
+  final bool dismissOnPointerMoveAway;
+
+  /// System backdrop material for the menu popup.
+  ///
+  /// When set, the menu background uses the specified system material
+  /// (Acrylic or Mica). Requires Windows 11 for Mica, Windows 10+ for Acrylic.
+  /// The [backgroundColor] is applied as tint on top of the backdrop.
+  final WinUIBackdropType? backdropType;
 
   /// Serializes this style to a Map for the native method channel.
   Map<String, dynamic> toJson() {
@@ -190,6 +221,18 @@ class WinUIContextMenuStyle {
     if (checkedIndicatorColor != null) {
       map['checkedIndicatorColor'] = _colorToArgb(checkedIndicatorColor!);
     }
+    if (checkedForegroundColor != null) {
+      map['checkedForegroundColor'] = _colorToArgb(checkedForegroundColor!);
+    }
+    if (checkedBackgroundColor != null) {
+      map['checkedBackgroundColor'] = _colorToArgb(checkedBackgroundColor!);
+    }
+    if (iconColor != null) {
+      map['iconColor'] = _colorToArgb(iconColor!);
+    }
+    if (keyboardAcceleratorColor != null) {
+      map['keyboardAcceleratorColor'] = _colorToArgb(keyboardAcceleratorColor!);
+    }
     map['compactItemLayout'] = compactItemLayout;
     if (maxHeight != null) {
       map['maxHeight'] = maxHeight;
@@ -197,8 +240,26 @@ class WinUIContextMenuStyle {
     if (enableOpenCloseAnimations != null) {
       map['enableOpenCloseAnimations'] = enableOpenCloseAnimations;
     }
+    if (dismissOnPointerMoveAway) {
+      map['dismissOnPointerMoveAway'] = true;
+    }
+    if (backdropType != null) {
+      map['backdropType'] = backdropType!.name;
+    }
     return map;
   }
+}
+
+/// System backdrop material type for the menu popup.
+enum WinUIBackdropType {
+  /// Desktop Acrylic (semi-transparent blur). Works on Windows 10+.
+  acrylic,
+
+  /// Mica material. Windows 11 only.
+  mica,
+
+  /// Mica Alt variant with stronger tint. Windows 11 only.
+  micaAlt,
 }
 
 /// Theme mode for the WinUI context menu.

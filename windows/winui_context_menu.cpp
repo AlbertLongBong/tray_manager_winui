@@ -29,6 +29,7 @@
 #include <winrt/Windows.UI.Text.h>
 #include <winrt/Microsoft.UI.Xaml.Markup.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
+#include <winrt/Microsoft.UI.Composition.SystemBackdrops.h>
 
 #include <MddBootstrap.h>
 #include <sstream>
@@ -424,7 +425,8 @@ Brush CreateBrushFromStyleInt(const flutter::EncodableMap& style,
 // Parses hex icon string ("0xHHHH") and creates a FontIcon.
 // Returns null IconElement on invalid input.
 IconElement CreateIconFromString(const std::string& iconStr,
-                                const std::string& fontFamily) {
+                                const std::string& fontFamily,
+                                Brush iconColorBrush = nullptr) {
   if (iconStr.size() < 3 || iconStr[0] != '0' ||
       (iconStr[1] != 'x' && iconStr[1] != 'X')) {
     return nullptr;
@@ -446,6 +448,9 @@ IconElement CreateIconFromString(const std::string& iconStr,
     fontIcon.FontFamily(
         Media::FontFamily(winrt::hstring(Utf8ToWide(fontFamily))));
   }
+  if (iconColorBrush) {
+    fontIcon.Foreground(iconColorBrush);
+  }
   return fontIcon;
 }
 
@@ -461,9 +466,13 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
   int64_t disabledFg = GetStyleInt(style, "disabledTextColor");
   int64_t subMenuOpenedBg = GetStyleInt(style, "subMenuOpenedBackgroundColor");
   int64_t subMenuOpenedFg = GetStyleInt(style, "subMenuOpenedTextColor");
+  int64_t checkedFg = GetStyleInt(style, "checkedForegroundColor");
+  int64_t checkedBg = GetStyleInt(style, "checkedBackgroundColor");
+  int64_t accelColor = GetStyleInt(style, "keyboardAcceleratorColor");
   bool needSubMenuOpenedFix = (subMenuOpenedBg == 0 && subMenuOpenedFg == 0);
   if (hoverBg != 0 || sepColor != 0 || disabledFg != 0 ||
-      subMenuOpenedBg != 0 || subMenuOpenedFg != 0 || needSubMenuOpenedFix) {
+      subMenuOpenedBg != 0 || subMenuOpenedFg != 0 || needSubMenuOpenedFix ||
+      checkedFg != 0 || checkedBg != 0 || accelColor != 0) {
     std::wstringstream themeContent;
     if (hoverBg != 0) {
       std::wstring hoverStr = ColorToXamlString(hoverBg);
@@ -510,6 +519,31 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
                    << subMenuFgStr << L"'/>"
                    << L"<SolidColorBrush x:Key='MenuFlyoutSubItemChevronSubMenuOpened' Color='"
                    << subMenuFgStr << L"'/>";
+    }
+    if (checkedBg != 0) {
+      std::wstring checkedBgStr = ColorToXamlString(checkedBg);
+      themeContent << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemBackgroundChecked' Color='"
+                   << checkedBgStr << L"'/>"
+                   << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemBackgroundCheckedPointerOver' Color='"
+                   << checkedBgStr << L"'/>"
+                   << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemBackgroundCheckedPressed' Color='"
+                   << checkedBgStr << L"'/>";
+    }
+    if (checkedFg != 0) {
+      std::wstring checkedFgStr = ColorToXamlString(checkedFg);
+      themeContent << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemForegroundChecked' Color='"
+                   << checkedFgStr << L"'/>"
+                   << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemForegroundCheckedPointerOver' Color='"
+                   << checkedFgStr << L"'/>"
+                   << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemForegroundCheckedPressed' Color='"
+                   << checkedFgStr << L"'/>"
+                   << L"<SolidColorBrush x:Key='ToggleMenuFlyoutItemCheckGlyphForegroundChecked' Color='"
+                   << checkedFgStr << L"'/>";
+    }
+    if (accelColor != 0) {
+      std::wstring accelStr = ColorToXamlString(accelColor);
+      themeContent << L"<SolidColorBrush x:Key='MenuFlyoutItemKeyboardAcceleratorTextForeground' Color='"
+                   << accelStr << L"'/>";
     }
     if (needSubMenuOpenedFix) {
       std::wstring subMenuBgVal =
@@ -958,6 +992,8 @@ void AddMenuItemsToCollection(
     std::string iconFontFamily = get_str("iconFontFamily");
     std::string acceleratorText = get_str("acceleratorText");
     std::string toolTipStr = get_str("toolTip");
+    Brush iconColorBrush = style_map
+        ? CreateBrushFromStyleInt(*style_map, "iconColor") : nullptr;
 
     if (type == "separator") {
       MenuFlyoutSeparator sep;
@@ -987,7 +1023,7 @@ void AddMenuItemsToCollection(
       if (compact_styles && compact_styles->menuFlyoutSubItemStyle) {
         sub.Style(compact_styles->menuFlyoutSubItemStyle);
       } else if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
         if (iconElem) sub.Icon(iconElem);
       }
       if (!toolTipStr.empty()) {
@@ -1016,7 +1052,7 @@ void AddMenuItemsToCollection(
       if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
         toggle.Style(compact_styles->toggleMenuFlyoutItemStyle);
       } else if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
         if (iconElem) toggle.Icon(iconElem);
       }
       if (!toolTipStr.empty()) {
@@ -1026,44 +1062,86 @@ void AddMenuItemsToCollection(
       if (style_map) ApplyItemStyling(toggle, *style_map, disabled);
       collection.Append(toggle);
 
-    } else if (type == "radio") {
-      // Render radio items as ToggleMenuFlyoutItem instead of
-      // RadioMenuFlyoutItem. RadioMenuFlyoutItem crashes in
-      // DesktopWindowXamlSource contexts due to internal visual-tree
-      // traversal in its radio-group management code. The mutual-
-      // exclusion logic is handled on the Dart side already (the
-      // onClick callback updates checked state and calls setContextMenu).
-      ToggleMenuFlyoutItem radio;
-      radio.Text(winrt::hstring(Utf8ToWide(label)));
-      radio.IsEnabled(!disabled);
-      auto checked_it = item_map->find(flutter::EncodableValue("checked"));
-      if (checked_it != item_map->end()) {
-        const auto* b = std::get_if<bool>(&checked_it->second);
-        radio.IsChecked(b && *b);
-      }
-      radio.Click([channel, id, cancelCloseForToggleClick](auto&&, auto&&) {
-        if (cancelCloseForToggleClick) *cancelCloseForToggleClick = true;
+    } else if (type == "split") {
+      SplitMenuFlyoutItem split;
+      split.Text(winrt::hstring(Utf8ToWide(label)));
+      split.IsEnabled(!disabled);
+      split.Click([channel, id](auto&&, auto&&) {
         flutter::EncodableMap args;
         args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
         InvokeOnPlatformThread(channel, "onMenuItemClick",
                                flutter::EncodableValue(std::move(args)));
       });
-      if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
-        radio.Style(compact_styles->toggleMenuFlyoutItemStyle);
-      } else if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
-        if (iconElem) radio.Icon(iconElem);
+      auto sub_it = item_map->find(flutter::EncodableValue("submenu"));
+      if (sub_it != item_map->end()) {
+        const auto* sub_map = std::get_if<flutter::EncodableMap>(&sub_it->second);
+        if (sub_map) {
+          auto sub_items_it = sub_map->find(flutter::EncodableValue("items"));
+          if (sub_items_it != sub_map->end()) {
+            const auto* sub_items = std::get_if<flutter::EncodableList>(&sub_items_it->second);
+            if (sub_items) {
+              AddMenuItemsToCollection(split.Items(), *sub_items, channel, style_map,
+                                      compact_styles, cancelCloseForToggleClick);
+            }
+          }
+        }
+      }
+      if (!iconStr.empty()) {
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
+        if (iconElem) split.Icon(iconElem);
       }
       if (!acceleratorText.empty()) {
-        radio.KeyboardAcceleratorTextOverride(
+        split.KeyboardAcceleratorTextOverride(
             winrt::hstring(Utf8ToWide(acceleratorText)));
       }
       if (!toolTipStr.empty()) {
-        ToolTipService::SetToolTip(radio,
+        ToolTipService::SetToolTip(split,
             winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
       }
-      if (style_map) ApplyItemStyling(radio, *style_map, disabled);
-      collection.Append(radio);
+      if (style_map) ApplyItemStyling(split, *style_map, disabled);
+      collection.Append(split);
+
+    } else if (type == "radio") {
+      // RadioMenuFlyoutItem crashes when rendered inside a SubMenu hosted in a
+      // DesktopWindowXamlSource (Xaml Islands) context – the crash happens at
+      // SubMenu-open time, not at item creation, so try/catch doesn't help.
+      // Use ToggleMenuFlyoutItem as a reliable substitute.
+      std::string groupName = get_str("radioGroup");
+      bool isChecked = false;
+      auto checked_it = item_map->find(flutter::EncodableValue("checked"));
+      if (checked_it != item_map->end()) {
+        const auto* b = std::get_if<bool>(&checked_it->second);
+        isChecked = (b && *b);
+      }
+      {
+        ToggleMenuFlyoutItem radio;
+        radio.Text(winrt::hstring(Utf8ToWide(label)));
+        radio.IsEnabled(!disabled);
+        radio.IsChecked(isChecked);
+        radio.Click([channel, id, cancelCloseForToggleClick](auto&&, auto&&) {
+          if (cancelCloseForToggleClick) *cancelCloseForToggleClick = true;
+          flutter::EncodableMap args;
+          args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
+          InvokeOnPlatformThread(channel, "onMenuItemClick",
+                                 flutter::EncodableValue(std::move(args)));
+        });
+        if (compact_styles && compact_styles->toggleMenuFlyoutItemStyle) {
+          radio.Style(compact_styles->toggleMenuFlyoutItemStyle);
+        } else if (!iconStr.empty()) {
+          auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
+          if (iconElem) radio.Icon(iconElem);
+        }
+        if (!acceleratorText.empty()) {
+          radio.KeyboardAcceleratorTextOverride(
+              winrt::hstring(Utf8ToWide(acceleratorText)));
+        }
+        if (!toolTipStr.empty()) {
+          ToolTipService::SetToolTip(radio,
+              winrt::box_value(winrt::hstring(Utf8ToWide(toolTipStr))));
+        }
+        if (style_map) ApplyItemStyling(radio, *style_map, disabled);
+        collection.Append(radio);
+      }
 
     } else {
       MenuFlyoutItem item;
@@ -1078,7 +1156,7 @@ void AddMenuItemsToCollection(
       if (compact_styles && compact_styles->menuFlyoutItemStyle) {
         item.Style(compact_styles->menuFlyoutItemStyle);
       } else if (!iconStr.empty()) {
-        auto iconElem = CreateIconFromString(iconStr, iconFontFamily);
+        auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
         if (iconElem) item.Icon(iconElem);
       }
       if (!acceleratorText.empty()) {
@@ -1101,7 +1179,8 @@ void ShowMenuOnWinUIThread(
     flutter::MethodChannel<flutter::EncodableValue>* channel,
     std::optional<double> pos_x,
     std::optional<double> pos_y,
-    std::optional<std::string> placement) {
+    std::optional<std::string> placement,
+    std::optional<flutter::EncodableMap> exclusion_rect) {
   auto& state = GetWinUIState();
   if (!state.queue) return;
 
@@ -1114,7 +1193,7 @@ void ShowMenuOnWinUIThread(
   flutter::EncodableMap style_copy = style_json;
   state.queue.TryEnqueue(DispatcherQueuePriority::Normal,
                          [menu_copy, style_copy, channel, pos_x, pos_y,
-                          placement]() {
+                          placement, exclusion_rect]() {
     auto prevDpiContext = SetThreadDpiAwarenessContext(
         DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
@@ -1215,8 +1294,10 @@ void ShowMenuOnWinUIThread(
       }
 
       double shadowElevation = GetStyleDouble(style_copy, "shadowElevation");
-      if (shadowElevation > 0) {
-        holder->flyout.Opened([holder, shadowElevation](auto&&, auto&&) {
+      std::string backdropType = GetStyleString(style_copy, "backdropType");
+      if (shadowElevation > 0 || !backdropType.empty()) {
+        holder->flyout.Opened([holder, shadowElevation,
+                                backdropType](auto&&, auto&&) {
           try {
             auto xamlRoot = holder->canvas.XamlRoot();
             if (!xamlRoot) return;
@@ -1226,10 +1307,32 @@ void ShowMenuOnWinUIThread(
             Popup popup = popups.GetAt(0);
             UIElement child = popup.Child();
             if (!child) return;
-            child.Translation(winrt::Windows::Foundation::Numerics::float3{
-                0.f, 0.f, static_cast<float>(shadowElevation)});
+            if (shadowElevation > 0) {
+              child.Translation(winrt::Windows::Foundation::Numerics::float3{
+                  0.f, 0.f, static_cast<float>(shadowElevation)});
+            }
+            if (!backdropType.empty()) {
+              auto presenter = child.try_as<Controls::MenuFlyoutPresenter>();
+              if (presenter) {
+                if (backdropType == "acrylic") {
+                  presenter.SystemBackdrop(
+                      winrt::Microsoft::UI::Xaml::Media::
+                          DesktopAcrylicBackdrop());
+                } else if (backdropType == "mica") {
+                  presenter.SystemBackdrop(
+                      winrt::Microsoft::UI::Xaml::Media::
+                          MicaBackdrop());
+                } else if (backdropType == "micaAlt") {
+                  auto mica = winrt::Microsoft::UI::Xaml::Media::
+                      MicaBackdrop();
+                  mica.Kind(winrt::Microsoft::UI::Composition::
+                      SystemBackdrops::MicaKind::BaseAlt);
+                  presenter.SystemBackdrop(mica);
+                }
+              }
+            }
           } catch (...) {
-            // ignore; shadow is non-critical
+            // ignore; shadow/backdrop are non-critical
           }
         });
       }
@@ -1261,16 +1364,38 @@ void ShowMenuOnWinUIThread(
 
       // ShowAt in Loaded: ensures XAML visual tree is ready (microsoft-ui-xaml#7989).
       // SetForegroundWindow + PostMessage(WM_NULL) before ShowAt: workaround for tray menus (MS KB135788).
-      holder->canvas.Loaded([holder, hwnd](auto&&, auto&&) {
+      holder->canvas.Loaded([holder, hwnd, style_copy, exclusion_rect](auto&&, auto&&) {
         try {
           SetForegroundWindow(hwnd);
           PostMessage(hwnd, WM_NULL, 0, 0);
 
           auto opts =
               winrt::Microsoft::UI::Xaml::Controls::Primitives::FlyoutShowOptions();
-          opts.ShowMode(FlyoutShowMode::Transient);
+          bool useDismissOnMove = GetStyleBool(style_copy,
+              "dismissOnPointerMoveAway", false);
+          opts.ShowMode(useDismissOnMove
+              ? FlyoutShowMode::TransientWithDismissOnPointerMoveAway
+              : FlyoutShowMode::Transient);
           winrt::Windows::Foundation::Point pos(0.0f, 0.0f);
           opts.Position(pos);
+          if (exclusion_rect.has_value()) {
+            const auto& er = *exclusion_rect;
+            auto get_d = [&](const char* k) -> double {
+              auto it = er.find(flutter::EncodableValue(k));
+              if (it == er.end()) return 0.0;
+              const auto* d = std::get_if<double>(&it->second);
+              if (d) return *d;
+              const auto* i = std::get_if<int32_t>(&it->second);
+              if (i) return static_cast<double>(*i);
+              return 0.0;
+            };
+            winrt::Windows::Foundation::Rect rect{
+                static_cast<float>(get_d("x")),
+                static_cast<float>(get_d("y")),
+                static_cast<float>(get_d("width")),
+                static_cast<float>(get_d("height"))};
+            opts.ExclusionRect(rect);
+          }
 
           DebugLog(L"TrayWinUI: calling ShowAt\n");
 
@@ -1362,12 +1487,13 @@ bool ShowWinUIContextMenu(
     flutter::MethodChannel<flutter::EncodableValue>* channel,
     std::optional<double> pos_x,
     std::optional<double> pos_y,
-    std::optional<std::string> placement) {
+    std::optional<std::string> placement,
+    std::optional<flutter::EncodableMap> exclusion_rect) {
   if (!channel) return false;
   try {
     if (!EnsureWinUIInitialized()) return false;
     ShowMenuOnWinUIThread(menu_json, style_json, channel, pos_x, pos_y,
-                          placement);
+                          placement, exclusion_rect);
     return true;
   } catch (const winrt::hresult_error& e) {
     DebugLog(L"ShowWinUIContextMenu error", e.code());
@@ -1396,7 +1522,8 @@ bool ShowWinUIContextMenu(
     flutter::MethodChannel<flutter::EncodableValue>*,
     std::optional<double>,
     std::optional<double>,
-    std::optional<std::string>) {
+    std::optional<std::string>,
+    std::optional<flutter::EncodableMap>) {
   return false;
 }
 

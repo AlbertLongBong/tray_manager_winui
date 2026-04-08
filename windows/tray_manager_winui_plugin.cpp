@@ -91,6 +91,7 @@ void TrayManagerWinuiPlugin::HandleMethodCall(
     std::optional<double> pos_x;
     std::optional<double> pos_y;
     std::optional<std::string> placement;
+    std::optional<flutter::EncodableMap> exclusion_rect;
 
     const auto* encodable_args = method_call.arguments();
     const auto* args =
@@ -115,10 +116,16 @@ void TrayManagerWinuiPlugin::HandleMethodCall(
       pos_x = get_double("x");
       pos_y = get_double("y");
       placement = get_string("placement");
+      auto er_it = args->find(flutter::EncodableValue("exclusionRect"));
+      if (er_it != args->end()) {
+        const auto* er_map = std::get_if<flutter::EncodableMap>(&er_it->second);
+        if (er_map) exclusion_rect = *er_map;
+      }
     }
 
     bool shown = ShowWinUIContextMenu(cached_menu_, cached_style_,
-                                      g_channel.get(), pos_x, pos_y, placement);
+                                      g_channel.get(), pos_x, pos_y,
+                                      placement, exclusion_rect);
     result->Success(flutter::EncodableValue(shown));
   } else {
     result->NotImplemented();

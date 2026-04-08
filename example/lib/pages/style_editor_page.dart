@@ -30,6 +30,21 @@ const _presets = <String, WinUIContextMenuStyle?>{
     separatorColor: Color(0xFFE0E0E0),
     disabledTextColor: Color(0xFF9E9E9E),
   ),
+  'Acrylic': WinUIContextMenuStyle(
+    themeMode: WinUIThemeMode.dark,
+    cornerRadius: 8,
+    backdropType: WinUIBackdropType.acrylic,
+    iconColor: Color(0xFF60CDFF),
+    keyboardAcceleratorColor: Color(0xFF888888),
+    shadowElevation: 32,
+  ),
+  'Mica': WinUIContextMenuStyle(
+    themeMode: WinUIThemeMode.dark,
+    cornerRadius: 8,
+    backdropType: WinUIBackdropType.mica,
+    checkedForegroundColor: Color(0xFF60CDFF),
+    checkedBackgroundColor: Color(0xFF303030),
+  ),
   'Minimal': WinUIContextMenuStyle(
     backgroundColor: Color(0xFFFFFFFF),
     textColor: Color(0xFF000000),
@@ -37,6 +52,20 @@ const _presets = <String, WinUIContextMenuStyle?>{
     cornerRadius: 4,
     themeMode: WinUIThemeMode.light,
     minWidth: 180,
+  ),
+  'Colorful': WinUIContextMenuStyle(
+    backgroundColor: Color(0xFF1A1A2E),
+    textColor: Color(0xFFE0E0E0),
+    fontSize: 14,
+    cornerRadius: 12,
+    themeMode: WinUIThemeMode.dark,
+    iconColor: Color(0xFFFF9800),
+    keyboardAcceleratorColor: Color(0xFF4CAF50),
+    checkedForegroundColor: Color(0xFFE91E63),
+    checkedBackgroundColor: Color(0xFF16213E),
+    hoverBackgroundColor: Color(0xFF0F3460),
+    separatorColor: Color(0xFF0F3460),
+    shadowElevation: 16,
   ),
   'Reset': null,
 };
@@ -99,6 +128,12 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
   double? _maxHeight;
   bool? _enableOpenCloseAnimations;
   bool _compactItemLayout = true;
+  Color? _checkedForegroundColor;
+  Color? _checkedBackgroundColor;
+  Color? _iconColor;
+  Color? _keyboardAcceleratorColor;
+  bool _dismissOnPointerMoveAway = false;
+  WinUIBackdropType? _backdropType;
 
   @override
   void initState() {
@@ -137,6 +172,12 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
     _maxHeight = s?.maxHeight;
     _enableOpenCloseAnimations = s?.enableOpenCloseAnimations;
     _compactItemLayout = s?.compactItemLayout ?? true;
+    _checkedForegroundColor = s?.checkedForegroundColor;
+    _checkedBackgroundColor = s?.checkedBackgroundColor;
+    _iconColor = s?.iconColor;
+    _keyboardAcceleratorColor = s?.keyboardAcceleratorColor;
+    _dismissOnPointerMoveAway = s?.dismissOnPointerMoveAway ?? false;
+    _backdropType = s?.backdropType;
   }
 
   WinUIContextMenuStyle _buildStyle() {
@@ -172,6 +213,12 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
       maxHeight: _maxHeight,
       enableOpenCloseAnimations: _enableOpenCloseAnimations,
       compactItemLayout: _compactItemLayout,
+      checkedForegroundColor: _checkedForegroundColor,
+      checkedBackgroundColor: _checkedBackgroundColor,
+      iconColor: _iconColor,
+      keyboardAcceleratorColor: _keyboardAcceleratorColor,
+      dismissOnPointerMoveAway: _dismissOnPointerMoveAway,
+      backdropType: _backdropType,
     );
   }
 
@@ -274,6 +321,23 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
       field('enableOpenCloseAnimations', '$_enableOpenCloseAnimations');
     }
     if (!_compactItemLayout) field('compactItemLayout', 'false');
+    if (_checkedForegroundColor != null) {
+      field('checkedForegroundColor', colorLiteral(_checkedForegroundColor!));
+    }
+    if (_checkedBackgroundColor != null) {
+      field('checkedBackgroundColor', colorLiteral(_checkedBackgroundColor!));
+    }
+    if (_iconColor != null) field('iconColor', colorLiteral(_iconColor!));
+    if (_keyboardAcceleratorColor != null) {
+      field('keyboardAcceleratorColor',
+          colorLiteral(_keyboardAcceleratorColor!));
+    }
+    if (_dismissOnPointerMoveAway) {
+      field('dismissOnPointerMoveAway', 'true');
+    }
+    if (_backdropType != null) {
+      field('backdropType', 'WinUIBackdropType.${_backdropType!.name}');
+    }
 
     sb.writeln('));');
     return sb.toString();
@@ -425,6 +489,34 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
           _pushStyle();
         }, () {
           setState(() => _borderColor = null);
+          _pushStyle();
+        }),
+        _colorRow('Checked foreground', _checkedForegroundColor, (c) {
+          setState(() => _checkedForegroundColor = c);
+          _pushStyle();
+        }, () {
+          setState(() => _checkedForegroundColor = null);
+          _pushStyle();
+        }),
+        _colorRow('Checked background', _checkedBackgroundColor, (c) {
+          setState(() => _checkedBackgroundColor = c);
+          _pushStyle();
+        }, () {
+          setState(() => _checkedBackgroundColor = null);
+          _pushStyle();
+        }),
+        _colorRow('Icon color', _iconColor, (c) {
+          setState(() => _iconColor = c);
+          _pushStyle();
+        }, () {
+          setState(() => _iconColor = null);
+          _pushStyle();
+        }),
+        _colorRow('Accelerator color', _keyboardAcceleratorColor, (c) {
+          setState(() => _keyboardAcceleratorColor = c);
+          _pushStyle();
+        }, () {
+          setState(() => _keyboardAcceleratorColor = null);
           _pushStyle();
         }),
       ],
@@ -776,6 +868,51 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
           subtitle: const Text('Hide all icons for a denser menu'),
           contentPadding: EdgeInsets.zero,
           dense: true,
+        ),
+        SwitchListTile(
+          value: _dismissOnPointerMoveAway,
+          onChanged: (v) {
+            setState(() => _dismissOnPointerMoveAway = v);
+            _pushStyle();
+          },
+          title: const Text('Dismiss on pointer move away'),
+          subtitle: const Text('Close menu when cursor leaves it'),
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        ),
+        SwitchListTile(
+          value: widget.controller.useExclusionRect,
+          onChanged: (v) {
+            setState(() => widget.controller.useExclusionRect = v);
+          },
+          title: const Text('Exclusion rect'),
+          subtitle: const Text('Avoid top-left 400×50 area when showing menu'),
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        ),
+        const SizedBox(height: 8),
+        _buildDropdownRow<WinUIBackdropType?>(
+          label: 'Backdrop',
+          value: _backdropType,
+          items: const [
+            DropdownMenuItem(value: null, child: Text('None (default)')),
+            DropdownMenuItem(
+              value: WinUIBackdropType.acrylic,
+              child: Text('Acrylic'),
+            ),
+            DropdownMenuItem(
+              value: WinUIBackdropType.mica,
+              child: Text('Mica'),
+            ),
+            DropdownMenuItem(
+              value: WinUIBackdropType.micaAlt,
+              child: Text('Mica Alt'),
+            ),
+          ],
+          onChanged: (v) {
+            setState(() => _backdropType = v);
+            _pushStyle();
+          },
         ),
       ],
     );

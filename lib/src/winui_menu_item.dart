@@ -48,6 +48,23 @@ class WinUIMenuItem extends MenuItem {
         acceleratorText = null,
         super.submenu();
 
+  /// Creates a split menu item with a primary action and a submenu.
+  ///
+  /// The primary action fires [onClick] when the left side is clicked.
+  /// The right chevron opens the [submenu] with additional options.
+  /// Requires Windows App SDK 1.8.6+ (SplitMenuFlyoutItem).
+  WinUIMenuItem.split({
+    super.key,
+    super.label,
+    required super.submenu,
+    super.disabled,
+    super.onClick,
+    super.toolTip,
+    this.winuiIcon,
+    this.acceleratorText,
+  })  : radioGroup = null,
+        super(type: 'split');
+
   /// Creates a radio menu item that belongs to a mutual-exclusion group.
   ///
   /// Items with the same [radioGroup] name form a radio group — selecting one

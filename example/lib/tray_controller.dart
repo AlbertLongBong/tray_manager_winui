@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Image;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:tray_manager_winui/tray_manager_winui.dart';
 
@@ -29,6 +30,13 @@ class TrayController extends ChangeNotifier implements TrayListener {
   late WinUIMenuItem _radioSmall;
   late WinUIMenuItem _radioMedium;
   late WinUIMenuItem _radioLarge;
+
+  bool _useExclusionRect = false;
+  bool get useExclusionRect => _useExclusionRect;
+  set useExclusionRect(bool value) {
+    _useExclusionRect = value;
+    notifyListeners();
+  }
 
   void _buildMenu() {
     _radioSmall = WinUIMenuItem.radio(
@@ -95,6 +103,33 @@ class TrayController extends ChangeNotifier implements TrayListener {
           label: 'View',
           winuiIcon: WinUIIcon.symbol(WinUISymbol.zoom),
           submenu: Menu(items: [_radioSmall, _radioMedium, _radioLarge]),
+        ),
+        WinUIMenuItem.split(
+          label: 'Share',
+          winuiIcon: WinUIIcon.symbol(WinUISymbol.share),
+          onClick: (_) => _showSnack('Share (primary action)'),
+          toolTip: 'Share via default method, or expand for more options',
+          submenu: Menu(
+            items: [
+              WinUIMenuItem(
+                label: 'E-Mail',
+                winuiIcon: WinUIIcon.symbol(WinUISymbol.mail),
+                onClick: (_) => _showSnack('Share via E-Mail'),
+              ),
+              WinUIMenuItem(
+                label: 'Link kopieren',
+                winuiIcon: WinUIIcon.symbol(WinUISymbol.link),
+                onClick: (_) => _showSnack('Share via Link'),
+              ),
+              MenuItem.separator(),
+              WinUIMenuItem(
+                label: 'Bluetooth',
+                winuiIcon: const WinUIIcon.glyph(0xE702),
+                disabled: true,
+                toolTip: 'Not available',
+              ),
+            ],
+          ),
         ),
         WinUIMenuItem.submenu(
           label: 'More',
@@ -236,7 +271,11 @@ class TrayController extends ChangeNotifier implements TrayListener {
   // ---------------------------------------------------------------------------
 
   Future<void> showMenu() async {
-    await TrayManagerWinUI.instance.showContextMenu();
+    await TrayManagerWinUI.instance.showContextMenu(
+      exclusionRect: _useExclusionRect
+          ? const Rect.fromLTWH(0, 0, 400, 50)
+          : null,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -246,7 +285,11 @@ class TrayController extends ChangeNotifier implements TrayListener {
   @override
   void onTrayIconRightMouseDown() {
     if (kDebugMode) print('onTrayIconRightMouseDown');
-    TrayManagerWinUI.instance.showContextMenu();
+    TrayManagerWinUI.instance.showContextMenu(
+      exclusionRect: _useExclusionRect
+          ? const Rect.fromLTWH(0, 0, 400, 50)
+          : null,
+    );
   }
 
   @override

@@ -94,7 +94,7 @@ class OverviewPage extends StatelessWidget {
         _FeatureItem(
           icon: Icons.image_outlined,
           label: 'Icons',
-          description: 'FontIcon / SymbolIcon via WinUIIcon',
+          description: 'FontIcon / SymbolIcon via WinUIIcon with iconColor',
         ),
         _FeatureItem(
           icon: Icons.radio_button_checked,
@@ -104,12 +104,18 @@ class OverviewPage extends StatelessWidget {
         _FeatureItem(
           icon: Icons.check_box_outlined,
           label: 'Checkbox Items',
-          description: 'ToggleMenuFlyoutItem with checked state',
+          description: 'ToggleMenuFlyoutItem with checked state styling',
+        ),
+        _FeatureItem(
+          icon: Icons.call_split,
+          label: 'Split Items',
+          description:
+              'SplitMenuFlyoutItem – primary action + submenu (SDK 1.8+)',
         ),
         _FeatureItem(
           icon: Icons.keyboard,
           label: 'Accelerator Text',
-          description: 'Keyboard shortcut hints (e.g. Ctrl+C)',
+          description: 'Keyboard shortcut hints with custom color',
         ),
         _FeatureItem(
           icon: Icons.info_outline,
@@ -122,9 +128,24 @@ class OverviewPage extends StatelessWidget {
           description: 'Nested MenuFlyoutSubItem with icons',
         ),
         _FeatureItem(
+          icon: Icons.blur_on,
+          label: 'Acrylic / Mica Backdrop',
+          description: 'System material as menu background (Win11)',
+        ),
+        _FeatureItem(
+          icon: Icons.block,
+          label: 'Exclusion Rect',
+          description: 'Avoid specific screen areas when showing menu',
+        ),
+        _FeatureItem(
+          icon: Icons.mouse_outlined,
+          label: 'Dismiss on Pointer Away',
+          description: 'Auto-close when cursor leaves the menu',
+        ),
+        _FeatureItem(
           icon: Icons.palette_outlined,
-          label: '25+ Style Properties',
-          description: 'Colors, fonts, borders, shadows, animations',
+          label: '30+ Style Properties',
+          description: 'Colors, fonts, borders, shadows, backdrops, animations',
         ),
         _FeatureItem(
           icon: Icons.event_note,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -81,6 +82,9 @@ class TrayManagerWinUI {
   /// Use [placement] to control where the menu appears relative to the anchor
   /// (e.g. [WinUIFlyoutPlacement.right] for left-handed users). Default is auto.
   ///
+  /// Use [exclusionRect] to specify a screen area the menu should avoid
+  /// (e.g. the taskbar). Coordinates are in physical pixels.
+  ///
   /// Call this from [TrayListener.onTrayIconRightMouseDown] instead of
   /// [trayManager.popUpContextMenu].
   ///
@@ -90,6 +94,7 @@ class TrayManagerWinUI {
     double? x,
     double? y,
     WinUIFlyoutPlacement? placement,
+    Rect? exclusionRect,
   }) async {
     if (!Platform.isWindows) {
       return false;
@@ -98,6 +103,14 @@ class TrayManagerWinUI {
     if (x != null) arguments['x'] = x;
     if (y != null) arguments['y'] = y;
     if (placement != null) arguments['placement'] = placement.name;
+    if (exclusionRect != null) {
+      arguments['exclusionRect'] = {
+        'x': exclusionRect.left,
+        'y': exclusionRect.top,
+        'width': exclusionRect.width,
+        'height': exclusionRect.height,
+      };
+    }
     final Object? result = await _channel.invokeMethod(
       'showContextMenu',
       arguments.isEmpty ? null : arguments,
