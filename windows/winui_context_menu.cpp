@@ -1295,9 +1295,28 @@ void ShowMenuOnWinUIThread(
 
       double shadowElevation = GetStyleDouble(style_copy, "shadowElevation");
       std::string backdropType = GetStyleString(style_copy, "backdropType");
-      if (shadowElevation > 0 || !backdropType.empty()) {
-        holder->flyout.Opened([holder, shadowElevation,
-                                backdropType](auto&&, auto&&) {
+
+      // Apply SystemBackdrop on the FlyoutBase itself (not the presenter).
+      // WinUI 3 supports FlyoutBase.SystemBackdrop since WinAppSDK 1.3+.
+      if (!backdropType.empty()) {
+        try {
+          if (backdropType == "acrylic") {
+            holder->flyout.SystemBackdrop(
+                winrt::Microsoft::UI::Xaml::Media::DesktopAcrylicBackdrop());
+          } else if (backdropType == "mica") {
+            holder->flyout.SystemBackdrop(
+                winrt::Microsoft::UI::Xaml::Media::MicaBackdrop());
+          } else if (backdropType == "micaAlt") {
+            auto mica = winrt::Microsoft::UI::Xaml::Media::MicaBackdrop();
+            mica.Kind(winrt::Microsoft::UI::Composition::
+                SystemBackdrops::MicaKind::BaseAlt);
+            holder->flyout.SystemBackdrop(mica);
+          }
+        } catch (...) {}
+      }
+
+      if (shadowElevation > 0) {
+        holder->flyout.Opened([holder, shadowElevation](auto&&, auto&&) {
           try {
             auto xamlRoot = holder->canvas.XamlRoot();
             if (!xamlRoot) return;
@@ -1307,33 +1326,43 @@ void ShowMenuOnWinUIThread(
             Popup popup = popups.GetAt(0);
             UIElement child = popup.Child();
             if (!child) return;
-            if (shadowElevation > 0) {
-              child.Translation(winrt::Windows::Foundation::Numerics::float3{
-                  0.f, 0.f, static_cast<float>(shadowElevation)});
-            }
-            if (!backdropType.empty()) {
-              auto presenter = child.try_as<Controls::MenuFlyoutPresenter>();
-              if (presenter) {
-                if (backdropType == "acrylic") {
-                  presenter.SystemBackdrop(
-                      winrt::Microsoft::UI::Xaml::Media::
-                          DesktopAcrylicBackdrop());
-                } else if (backdropType == "mica") {
-                  presenter.SystemBackdrop(
-                      winrt::Microsoft::UI::Xaml::Media::
-                          MicaBackdrop());
-                } else if (backdropType == "micaAlt") {
-                  auto mica = winrt::Microsoft::UI::Xaml::Media::
-                      MicaBackdrop();
-                  mica.Kind(winrt::Microsoft::UI::Composition::
-                      SystemBackdrops::MicaKind::BaseAlt);
-                  presenter.SystemBackdrop(mica);
+            child.Translation(winrt::Windows::Foundation::Numerics::float3{
+                0.f, 0.f, static_cast<float>(shadowElevation)});
+          } catch (...) {}
+        });
+      }
+
+      bool useDismissOnMove = GetStyleBool(style_copy,
+          "dismissOnPointerMoveAway", false);
+      auto dismissTimer = std::make_shared<
+          winrt::Microsoft::UI::Dispatching::DispatcherQueueTimer>(nullptr);
+
+      if (useDismissOnMove) {
+        holder->flyout.Opened([holder, hwnd, dismissTimer](auto&&, auto&&) {
+          try {
+            auto& state = GetWinUIState();
+            *dismissTimer = state.queue.CreateTimer();
+            (*dismissTimer).Interval(std::chrono::milliseconds(150));
+            (*dismissTimer).Tick([holder, hwnd](auto&&, auto&&) {
+              try {
+                POINT cursorPt;
+                GetCursorPos(&cursorPt);
+                HWND underCursor = WindowFromPoint(cursorPt);
+                if (!underCursor) {
+                  holder->flyout.Hide();
+                  return;
                 }
-              }
-            }
-          } catch (...) {
-            // ignore; shadow/backdrop are non-critical
-          }
+                // Accept if cursor is over host window or any of its children
+                // (popup windows are owned by the host hwnd's thread).
+                if (underCursor == hwnd || IsChild(hwnd, underCursor)) return;
+                DWORD hostTid = GetWindowThreadProcessId(hwnd, nullptr);
+                DWORD cursorTid = GetWindowThreadProcessId(underCursor, nullptr);
+                if (hostTid == cursorTid) return;
+                holder->flyout.Hide();
+              } catch (...) {}
+            });
+            (*dismissTimer).Start();
+          } catch (...) {}
         });
       }
 
@@ -1348,7 +1377,11 @@ void ShowMenuOnWinUIThread(
         }
         InvokeOnPlatformThread(channel, "onMenuClosing");
       });
-      holder->flyout.Closed([holder, hwnd, channel](auto&&, auto&&) {
+      holder->flyout.Closed([holder, hwnd, channel, dismissTimer](auto&&, auto&&) {
+        if (*dismissTimer) {
+          (*dismissTimer).Stop();
+          *dismissTimer = nullptr;
+        }
         RemoveCursorHook();
         InvokeOnPlatformThread(channel, "onMenuClosed");
         PostMessage(hwnd, WM_CLOSE, 0, 0);

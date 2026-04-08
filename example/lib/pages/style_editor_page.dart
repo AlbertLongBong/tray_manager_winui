@@ -886,7 +886,9 @@ class _StyleEditorPageState extends State<StyleEditorPage> {
             setState(() => widget.controller.useExclusionRect = v);
           },
           title: const Text('Exclusion rect'),
-          subtitle: const Text('Avoid top-left 400×50 area when showing menu'),
+          subtitle: const Text(
+            'Menu avoids a 400×50 area at cursor pos (visible via Show Menu button)',
+          ),
           contentPadding: EdgeInsets.zero,
           dense: true,
         ),

@@ -32,6 +32,8 @@ class OverviewPage extends StatelessWidget {
                 _buildHeroSection(context),
                 const SizedBox(height: 24),
                 _buildShowMenuButton(context),
+                const SizedBox(height: 16),
+                _buildRandomMenuButtons(context),
                 const SizedBox(height: 24),
                 _buildFeatureSection(context),
                 const SizedBox(height: 24),
@@ -84,6 +86,31 @@ class OverviewPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         ),
       ),
+    );
+  }
+
+  Widget _buildRandomMenuButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton.icon(
+          onPressed: controller.generateTrueRandomMenu,
+          icon: const Icon(Icons.shuffle, size: 18),
+          label: const Text('True Random'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: controller.generateStructuredRandomMenu,
+          icon: const Icon(Icons.auto_awesome, size: 18),
+          label: const Text('Structured Random'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+        ),
+      ],
     );
   }
 
