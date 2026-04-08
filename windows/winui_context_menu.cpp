@@ -153,6 +153,38 @@ struct MenuHostData {
   std::shared_ptr<MenuHolder> holder;
 };
 
+// Thread-local hook that forces the arrow cursor on every window owned by the
+// WinUI DispatcherQueue thread.  WinUI creates its own top-level popup windows
+// for MenuFlyout (and submenus) which have no hCursor set in their WNDCLASS.
+// Without this hook those popups show the "app starting" (spinning) cursor
+// whenever the mouse rests on the flyout border or between items.
+HHOOK g_cursorHook = nullptr;
+
+LRESULT CALLBACK CursorHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
+  if (nCode >= 0) {
+    auto* cwp = reinterpret_cast<CWPSTRUCT*>(lParam);
+    if (cwp && cwp->message == WM_SETCURSOR &&
+        LOWORD(cwp->lParam) == HTCLIENT) {
+      SetCursor(LoadCursor(nullptr, IDC_ARROW));
+    }
+  }
+  return CallNextHookEx(g_cursorHook, nCode, wParam, lParam);
+}
+
+void InstallCursorHook() {
+  if (!g_cursorHook) {
+    g_cursorHook = SetWindowsHookExW(
+        WH_CALLWNDPROC, CursorHookProc, nullptr, GetCurrentThreadId());
+  }
+}
+
+void RemoveCursorHook() {
+  if (g_cursorHook) {
+    UnhookWindowsHookEx(g_cursorHook);
+    g_cursorHook = nullptr;
+  }
+}
+
 LRESULT CALLBACK MenuHostWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   auto* data = reinterpret_cast<MenuHostData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 
@@ -607,14 +639,6 @@ void ApplyStyleToFlyout(MenuFlyout& flyout, const flutter::EncodableMap& style) 
   double maxHeight = GetStyleDouble(style, "maxHeight");
   if (maxHeight > 0) {
     xaml << L"<Setter Property='MaxHeight' Value='" << maxHeight << L"'/>";
-  }
-
-  auto animIt = style.find(flutter::EncodableValue("enableOpenCloseAnimations"));
-  if (animIt != style.end()) {
-    const auto* b = std::get_if<bool>(&animIt->second);
-    if (b && !*b) {
-      xaml << L"<Setter Property='AreOpenCloseAnimationsEnabled' Value='False'/>";
-    }
   }
 
   xaml << L"</Style>";
@@ -1124,8 +1148,20 @@ void ShowMenuOnWinUIThread(
       GetCursorPos(&pt);
     }
 
+    static const wchar_t* kMenuHostClass = L"TrayWinUIMenuHost";
+    static bool class_registered = false;
+    if (!class_registered) {
+      WNDCLASSW wc = {};
+      wc.lpfnWndProc = DefWindowProcW;
+      wc.hInstance = GetModuleHandle(nullptr);
+      wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+      wc.lpszClassName = kMenuHostClass;
+      RegisterClassW(&wc);
+      class_registered = true;
+    }
+
     HWND hwnd = CreateWindowExW(
-        WS_EX_TOOLWINDOW | WS_EX_TOPMOST, L"Static", L"",
+        WS_EX_TOOLWINDOW | WS_EX_TOPMOST, kMenuHostClass, L"",
         WS_POPUP, pt.x, pt.y, 1, 1,
         nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
 
@@ -1137,6 +1173,8 @@ void ShowMenuOnWinUIThread(
       GetWinUIState().menu_showing.store(false);
       return;
     }
+
+    InstallCursorHook();
 
     ShowWindow(hwnd, SW_SHOWNOACTIVATE);
 
@@ -1181,6 +1219,14 @@ void ShowMenuOnWinUIThread(
 
       if (!style_copy.empty()) {
         ApplyStyleToFlyout(holder->flyout, style_copy);
+
+        auto animIt = style_copy.find(flutter::EncodableValue("enableOpenCloseAnimations"));
+        if (animIt != style_copy.end()) {
+          const auto* b = std::get_if<bool>(&animIt->second);
+          if (b && !*b) {
+            holder->flyout.AreOpenCloseAnimationsEnabled(false);
+          }
+        }
       }
 
       if (placement.has_value()) {
@@ -1222,6 +1268,7 @@ void ShowMenuOnWinUIThread(
         InvokeOnPlatformThread(channel, "onMenuClosing");
       });
       holder->flyout.Closed([holder, hwnd, channel](auto&&, auto&&) {
+        RemoveCursorHook();
         InvokeOnPlatformThread(channel, "onMenuClosed");
         PostMessage(hwnd, WM_CLOSE, 0, 0);
       });
@@ -1252,19 +1299,23 @@ void ShowMenuOnWinUIThread(
           holder->flyout.ShowAt(holder->canvas, opts);
         } catch (const winrt::hresult_error& e) {
           DebugLog(L"ShowAt failed", e.code());
+          RemoveCursorHook();
           DestroyWindow(hwnd);
         } catch (...) {
           DebugLog(L"TrayWinUI: ShowAt failed (unknown exception)\n");
+          RemoveCursorHook();
           DestroyWindow(hwnd);
         }
       });
 
     } catch (const winrt::hresult_error& e) {
       DebugLog(L"XAML setup failed", e.code());
+      RemoveCursorHook();
       GetWinUIState().menu_showing.store(false);
       DestroyWindow(hwnd);
     } catch (...) {
       DebugLog(L"TrayWinUI: XAML setup failed (unknown exception)\n");
+      RemoveCursorHook();
       GetWinUIState().menu_showing.store(false);
       DestroyWindow(hwnd);
     }
