@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart' show Color, EdgeInsets, FontStyle, FontWeight;
 
 /// Converts [Color] to its 32-bit ARGB integer for method channel transport.
-/// Uses component accessors to avoid the deprecated [Color.value] getter.
 int _colorToArgb(Color c) =>
-    (c.alpha << 24) | (c.red << 16) | (c.green << 8) | c.blue;
+    ((c.a * 255.0).round().clamp(0, 255) << 24) |
+    ((c.r * 255.0).round().clamp(0, 255) << 16) |
+    ((c.g * 255.0).round().clamp(0, 255) << 8) |
+    (c.b * 255.0).round().clamp(0, 255);
 
 /// Styling options for the WinUI 3 context menu.
 ///

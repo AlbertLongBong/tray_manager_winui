@@ -1063,15 +1063,11 @@ void AddMenuItemsToCollection(
       collection.Append(toggle);
 
     } else if (type == "split") {
-      SplitMenuFlyoutItem split;
+      // WinUI 3 does not expose SplitMenuFlyoutItem in the current Windows App
+      // SDK. Render split entries as submenus so the menu remains usable.
+      MenuFlyoutSubItem split;
       split.Text(winrt::hstring(Utf8ToWide(label)));
       split.IsEnabled(!disabled);
-      split.Click([channel, id](auto&&, auto&&) {
-        flutter::EncodableMap args;
-        args[flutter::EncodableValue("id")] = flutter::EncodableValue(id);
-        InvokeOnPlatformThread(channel, "onMenuItemClick",
-                               flutter::EncodableValue(std::move(args)));
-      });
       auto sub_it = item_map->find(flutter::EncodableValue("submenu"));
       if (sub_it != item_map->end()) {
         const auto* sub_map = std::get_if<flutter::EncodableMap>(&sub_it->second);
@@ -1089,10 +1085,6 @@ void AddMenuItemsToCollection(
       if (!iconStr.empty()) {
         auto iconElem = CreateIconFromString(iconStr, iconFontFamily, iconColorBrush);
         if (iconElem) split.Icon(iconElem);
-      }
-      if (!acceleratorText.empty()) {
-        split.KeyboardAcceleratorTextOverride(
-            winrt::hstring(Utf8ToWide(acceleratorText)));
       }
       if (!toolTipStr.empty()) {
         ToolTipService::SetToolTip(split,
