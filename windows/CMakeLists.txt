@@ -4,21 +4,22 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 
 set(PLUGIN_NAME "tray_manager_winui_plugin")
 
-# Option to enable WinUI 3 (requires NuGet, Windows App SDK 1.8+)
+# Option to enable WinUI 3 (requires NuGet, Windows App SDK Runtime 2.2)
 option(TRAY_MANAGER_WINUI_USE_WINUI "Enable WinUI 3 context menu" ON)
 
 set(TRAY_MANAGER_WINUI_BUNDLED_LIBS "")
 
 if(TRAY_MANAGER_WINUI_USE_WINUI)
   # NuGet package setup
-  # Since 1.8 the top-level Microsoft.WindowsAppSDK is a metapackage;
+  # The top-level Microsoft.WindowsAppSDK 2.2.0 package is a metapackage;
   # native headers/libs/DLLs live in the Foundation component package,
   # WinUI WinMD files (Microsoft.UI.Xaml) live in the WinUI component package,
   # Microsoft.UI core WinMDs (Interop, Dispatching) live in InteractiveExperiences.
   set(WINUI_PACKAGES_DIR "${CMAKE_CURRENT_BINARY_DIR}/winui_packages")
-  set(WindowsAppSDK_Foundation_VER "1.8.260222000")
-  set(WindowsAppSDK_InteractiveExp_VER "1.8.260125001")
-  set(WindowsAppSDK_WinUI_VER "1.8.260224000")
+  set(WindowsAppSDK_Foundation_VER "2.1.0")
+  set(WindowsAppSDK_InteractiveExp_VER "2.0.15")
+  set(WindowsAppSDK_WinUI_VER "2.2.1")
+  set(WebView2_VER "1.0.3719.77")
   set(CppWinRT_VER "2.0.250303.1")
 
   find_program(NUGET_EXE nuget PATHS ENV PATH)
@@ -28,8 +29,11 @@ if(TRAY_MANAGER_WINUI_USE_WINUI)
     set(WindowsAppSDK_DIR "${WINUI_PACKAGES_DIR}/Microsoft.WindowsAppSDK.Foundation.${WindowsAppSDK_Foundation_VER}")
     set(WindowsAppSDK_IE_DIR "${WINUI_PACKAGES_DIR}/Microsoft.WindowsAppSDK.InteractiveExperiences.${WindowsAppSDK_InteractiveExp_VER}")
     set(WindowsAppSDK_WinUI_DIR "${WINUI_PACKAGES_DIR}/Microsoft.WindowsAppSDK.WinUI.${WindowsAppSDK_WinUI_VER}")
+    set(WebView2_DIR "${WINUI_PACKAGES_DIR}/Microsoft.Web.WebView2.${WebView2_VER}")
     set(CppWinRT_DIR "${WINUI_PACKAGES_DIR}/Microsoft.Windows.CppWinRT.${CppWinRT_VER}")
     set(GENERATED_FILES_DIR "${CMAKE_CURRENT_BINARY_DIR}/GeneratedFiles")
+    set(GENERATED_FILES_STAMP
+      "${GENERATED_FILES_DIR}/.windowsappsdk-${WindowsAppSDK_Foundation_VER}-${WindowsAppSDK_InteractiveExp_VER}-${WindowsAppSDK_WinUI_VER}-${WebView2_VER}.stamp")
 
     if(NOT EXISTS "${WindowsAppSDK_DIR}")
       execute_process(
@@ -55,6 +59,30 @@ if(TRAY_MANAGER_WINUI_USE_WINUI)
       endif()
     endif()
 
+    if(TRAY_MANAGER_WINUI_USE_WINUI AND NOT EXISTS "${WindowsAppSDK_IE_DIR}")
+      execute_process(
+        COMMAND "${NUGET_EXE}" install Microsoft.WindowsAppSDK.InteractiveExperiences -Version ${WindowsAppSDK_InteractiveExp_VER} -OutputDirectory "${WINUI_PACKAGES_DIR}"
+        RESULT_VARIABLE NUGET_RESULT
+        ERROR_VARIABLE NUGET_ERROR
+      )
+      if(NOT NUGET_RESULT EQUAL 0)
+        message(WARNING "tray_manager_winui: NuGet install Microsoft.WindowsAppSDK.InteractiveExperiences failed: ${NUGET_ERROR}")
+        set(TRAY_MANAGER_WINUI_USE_WINUI OFF)
+      endif()
+    endif()
+
+    if(TRAY_MANAGER_WINUI_USE_WINUI AND NOT EXISTS "${WebView2_DIR}")
+      execute_process(
+        COMMAND "${NUGET_EXE}" install Microsoft.Web.WebView2 -Version ${WebView2_VER} -OutputDirectory "${WINUI_PACKAGES_DIR}"
+        RESULT_VARIABLE NUGET_RESULT
+        ERROR_VARIABLE NUGET_ERROR
+      )
+      if(NOT NUGET_RESULT EQUAL 0)
+        message(WARNING "tray_manager_winui: NuGet install Microsoft.Web.WebView2 failed: ${NUGET_ERROR}")
+        set(TRAY_MANAGER_WINUI_USE_WINUI OFF)
+      endif()
+    endif()
+
     if(TRAY_MANAGER_WINUI_USE_WINUI AND NOT EXISTS "${CppWinRT_DIR}")
       execute_process(
         COMMAND "${NUGET_EXE}" install Microsoft.Windows.CppWinRT -Version ${CppWinRT_VER} -OutputDirectory "${WINUI_PACKAGES_DIR}"
@@ -67,18 +95,13 @@ if(TRAY_MANAGER_WINUI_USE_WINUI)
       endif()
     endif()
 
-    if(TRAY_MANAGER_WINUI_USE_WINUI AND EXISTS "${WindowsAppSDK_DIR}" AND EXISTS "${WindowsAppSDK_WinUI_DIR}" AND EXISTS "${CppWinRT_DIR}")
-      # WebView2 is a transitive dependency of the WinUI package; find it
-      # dynamically so cppwinrt can resolve Microsoft.UI.Xaml → WebView2 refs.
-      file(GLOB _webview2_dirs "${WINUI_PACKAGES_DIR}/Microsoft.Web.WebView2.*/lib")
-      list(LENGTH _webview2_dirs _wv2_count)
-      if(_wv2_count GREATER 0)
-        list(GET _webview2_dirs 0 _webview2_lib_dir)
-      else()
-        set(_webview2_lib_dir "")
-      endif()
+    if(TRAY_MANAGER_WINUI_USE_WINUI AND EXISTS "${WindowsAppSDK_DIR}" AND EXISTS "${WindowsAppSDK_IE_DIR}" AND EXISTS "${WindowsAppSDK_WinUI_DIR}" AND EXISTS "${WebView2_DIR}" AND EXISTS "${CppWinRT_DIR}")
+      # WebView2 is a transitive dependency of the WinUI package; use the
+      # exact version from WinUI 2.2.1 so stale package folders are ignored.
+      set(_webview2_lib_dir "${WebView2_DIR}/lib")
 
-      if(NOT EXISTS "${GENERATED_FILES_DIR}/winrt/Microsoft.UI.Xaml.Controls.h")
+      if(NOT EXISTS "${GENERATED_FILES_DIR}/winrt/Microsoft.UI.Xaml.Controls.h" OR NOT EXISTS "${GENERATED_FILES_STAMP}")
+        file(REMOVE_RECURSE "${GENERATED_FILES_DIR}/winrt")
         file(MAKE_DIRECTORY "${GENERATED_FILES_DIR}")
 
         set(_cppwinrt_inputs
@@ -101,6 +124,8 @@ if(TRAY_MANAGER_WINUI_USE_WINUI)
         if(NOT CPPWINRT_RESULT EQUAL 0)
           message(WARNING "tray_manager_winui: cppwinrt.exe failed")
           set(TRAY_MANAGER_WINUI_USE_WINUI OFF)
+        else()
+          file(WRITE "${GENERATED_FILES_STAMP}" "WindowsAppSDK ${WindowsAppSDK_Foundation_VER} ${WindowsAppSDK_InteractiveExp_VER} ${WindowsAppSDK_WinUI_VER} WebView2 ${WebView2_VER}\n")
         endif()
       endif()
 

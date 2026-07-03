@@ -58,10 +58,10 @@ Instead of the classic Win32 menu (`CreatePopupMenu`/`TrackPopupMenu`), this plu
 ## Requirements
 
 - **Windows**: 10 1903+ (for XAML Islands)
-- **Windows App SDK**: 1.8+ (MddBootstrap, MenuFlyout.ShowAt fix [microsoft-ui-xaml#7989](https://github.com/microsoft/microsoft-ui-xaml/issues/7989))
+- **Windows App SDK**: 2.2.0 (MddBootstrap, includes MenuFlyout.ShowAt fix [microsoft-ui-xaml#7989](https://github.com/microsoft/microsoft-ui-xaml/issues/7989))
 - **Build**: Visual Studio 2022 with C++ Desktop Development Workload
-- **Runtime**: Windows App Runtime (e.g. `winget install Microsoft.WindowsAppRuntime.1.8`)
-- **NuGet**: In PATH for automatic package download (Microsoft.WindowsAppSDK.Foundation, Microsoft.WindowsAppSDK.WinUI, Microsoft.Windows.CppWinRT)
+- **Runtime**: Windows App Runtime 2.2.0 (install via the official `WindowsAppRuntimeInstall.exe` or Redist package)
+- **NuGet**: In PATH for automatic package download (Microsoft.WindowsAppSDK.Foundation, Microsoft.WindowsAppSDK.InteractiveExperiences, Microsoft.WindowsAppSDK.WinUI, Microsoft.Windows.CppWinRT)
 
 ---
 
@@ -270,7 +270,7 @@ Without `style`, WinUI default values are used.
 
 ## Build Integration (WinUI)
 
-- **Automatic**: NuGet in PATH → CMake loads WindowsAppSDK 1.8 (Foundation + WinUI) + CppWinRT when configuring
+- **Automatic**: NuGet in PATH -> CMake loads WindowsAppSDK 2.2 components (Foundation + InteractiveExperiences + WinUI) + CppWinRT when configuring
 - **Disable**: CMake option `-DTRAY_MANAGER_WINUI_USE_WINUI=OFF` (stub mode)
 - **Without NuGet**: Stub is used (no visible menu, no errors)
 - **Bundled DLL**: `Microsoft.WindowsAppRuntime.Bootstrap.dll` is copied to the plugin directory
@@ -281,11 +281,11 @@ Without `style`, WinUI default values are used.
 
 For end users or development:
 
-```bash
-winget install Microsoft.WindowsAppRuntime.1.8
-```
+Install Windows App Runtime 2.2.0 with the official `WindowsAppRuntimeInstall.exe`
+or Redist package from [Windows App SDK Releases](https://github.com/microsoft/WindowsAppSDK/releases/tag/v2.2.0).
 
-Or manually: [Windows App SDK Releases](https://github.com/microsoft/WindowsAppSDK/releases)
+If your package source already exposes a runtime package ID, you can also use
+the matching `Microsoft.WindowsAppRuntime.2.2` package.
 
 ---
 
@@ -308,7 +308,7 @@ The example app has two tabs:
 |---------|----------|
 | Menu does not appear | NuGet in PATH? Windows App SDK installed? `showContextMenu()` returns `false`? |
 | Build error (WinRT/WindowsAppSDK) | VS 2022 C++ Desktop, Windows 10 SDK 19041+ |
-| "MddBootstrap" error | Install WindowsAppRuntime via `winget install Microsoft.WindowsAppRuntime.1.8` |
+| "MddBootstrap" error | Install Windows App Runtime 2.2.0 via the official `WindowsAppRuntimeInstall.exe` or Redist package |
 
 In debug mode, `showContextMenu()` prints a console message when display fails.
 

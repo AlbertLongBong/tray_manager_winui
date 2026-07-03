@@ -119,7 +119,7 @@ class TrayManagerWinUI {
       debugPrint(
         'tray_manager_winui: WinUI context menu not displayed. '
         'Check: NuGet in PATH? Windows App SDK installed? '
-        'See README (MddBootstrap, winget install Microsoft.WindowsAppRuntime.1.8)',
+        'See README (MddBootstrap, Windows App Runtime 2.2)',
       );
     }
     return shown;

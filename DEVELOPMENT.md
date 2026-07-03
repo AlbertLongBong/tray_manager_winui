@@ -10,8 +10,8 @@
 |------|---------|-------|
 | Flutter | 3.3+ | `flutter doctor` should pass for Windows |
 | Visual Studio 2022 | latest | C++ Desktop Development workload required |
-| Windows App SDK | 1.8+ | `winget install Microsoft.WindowsAppRuntime.1.8` |
-| NuGet | in PATH | CMake auto-downloads WindowsAppSDK Foundation + WinUI + CppWinRT |
+| Windows App SDK | 2.2.0 | Install Windows App Runtime 2.2.0 from the official Windows App SDK release |
+| NuGet | in PATH | CMake auto-downloads WindowsAppSDK Foundation + InteractiveExperiences + WinUI + CppWinRT |
 | Windows | 10 1903+ | XAML Islands support |
 
 ---

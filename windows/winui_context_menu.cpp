@@ -236,8 +236,8 @@ bool EnsureWinUIInitialized() {
     state.cv.notify_all();
   };
 
-  // Windows App SDK 1.8 - required for MenuFlyout.ShowAt fix (microsoft-ui-xaml#7989)
-  constexpr UINT32 c_majorMinor = 0x00010008;
+  // Windows App SDK Runtime 2.2 - keep in sync with the NuGet package versions.
+  constexpr UINT32 c_majorMinor = 0x00020002;
   constexpr PCWSTR c_versionTag = L"";
   PACKAGE_VERSION minVersion{};
   HRESULT hr = MddBootstrapInitialize2(
